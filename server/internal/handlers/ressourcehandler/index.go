@@ -1,6 +1,8 @@
 package ressourcehandler
 
 import (
+	"log"
+	"os"
 	"simplemavenrepo/internal/config"
 	"time"
 
@@ -24,4 +26,10 @@ func RegisterRessourceRoutes(app *fiber.App) {
 		MaxAge:        31536000, // 1 year
 		CacheDuration: 10 * time.Minute,
 	}))
+
+	root, err := os.OpenRoot(config.GetRepoPath())
+	if err != nil {
+		log.Fatalf("Cannot open repository path: %v", err)
+	}
+	releasesGroup.Put("/*", newUploadHandler(root))
 }
