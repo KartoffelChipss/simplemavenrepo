@@ -1,0 +1,27 @@
+version: '3'
+
+vars:
+  REPO_PATH: '{{.SMR_REPO_PATH | default "./repo"}}'
+
+tasks:
+  hashes:
+    desc: Generate .md5, .sha1, .sha256 and .sha512 checksum files for every artifact in the repository
+    silent: true
+    preconditions:
+      - sh: command -v openssl
+        msg: openssl is required to generate checksums
+      - sh: test -d "{{.REPO_PATH}}"
+        msg: 'Repository path {{.REPO_PATH}} does not exist'
+    cmds:
+      - |
+        find "{{.REPO_PATH}}" -type f \
+          ! -name '.*' \
+          ! -name '*.md5' ! -name '*.sha1' ! -name '*.sha256' ! -name '*.sha512' ! -name '*.asc' \
+          -exec sh -c '
+            for f; do
+              for algo in md5 sha1 sha256 sha512; do
+                printf "%s" "$(openssl dgst -$algo -r "$f" | cut -d " " -f 1)" > "$f.$algo"
+              done
+              echo "hashed $f"
+            done
+          ' sh {} +

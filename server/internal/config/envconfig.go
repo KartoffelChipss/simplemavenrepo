@@ -1,7 +1,9 @@
 package config
 
 import (
+	"log"
 	"os"
+	"simplemavenrepo/internal/util"
 )
 
 func getEnv(key, fallback string) string {
@@ -21,4 +23,17 @@ func GetPort() string {
 
 func GetHost() string {
 	return getEnv("SMR_HOST", "127.0.0.1")
+}
+
+func GetRepoPath() string {
+	return getEnv("SMR_REPO_PATH", "./repo")
+}
+
+func GetBodyLimit() int {
+	limit, err := util.ParseByteSize(getEnv("SMR_BODY_LIMIT", "512MB"))
+	if err != nil {
+		log.Printf("Error parsing body limit. Falling back to default 512MB. Error: %v", err)
+		return 512 * 1024 * 1024 // 512MB
+	}
+	return limit
 }
