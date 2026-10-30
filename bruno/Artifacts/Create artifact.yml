@@ -1,0 +1,27 @@
+info:
+  name: Create artifact
+  type: http
+  seq: 2
+
+http:
+  method: POST
+  url: "{{baseUrl}}/api/artifacts"
+  body:
+    type: json
+    data: |-
+      {
+        "groupId": "{{groupId}}",
+        "artifactId": "{{artifactId}}",
+        "public": false,
+        "description": "Demo library"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+docs: Only registered artifacts can be downloaded or uploaded to. Public artifacts can be downloaded without a token.

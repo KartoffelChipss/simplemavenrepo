@@ -13,31 +13,40 @@ import (
 
 type userKey struct{}
 
-// Authenticate accepts a token either as "Bearer <token>" or as the password of HTTP Basic auth, which is what Maven and Gradle send.
+// Authenticate is a middleware that only lets authenticated requests through. See Identify.
 func Authenticate(tokens *repository.TokenRepository) fiber.Handler {
 	return func(c fiber.Ctx) error {
-		username, token, ok := parseAuthorization(c.Get(fiber.HeaderAuthorization))
-		if !ok {
-			c.Set(fiber.HeaderWWWAuthenticate, `Basic realm="simplemavenrepo"`)
-			return fiber.NewError(fiber.StatusUnauthorized, "authentication required")
+		if err := Identify(c, tokens); err != nil {
+			return err
 		}
-
-		user, err := tokens.Authenticate(c.Context(), token)
-		if err == nil && username != "" && username != user.Username {
-			err = repository.ErrInvalidCredentials
-		}
-		if err != nil {
-			if !errors.Is(err, repository.ErrInvalidCredentials) {
-				log.Printf("Authentication failed: %v", err)
-				return fiber.ErrInternalServerError
-			}
-			c.Set(fiber.HeaderWWWAuthenticate, `Basic realm="simplemavenrepo"`)
-			return fiber.NewError(fiber.StatusUnauthorized, "invalid credentials")
-		}
-
-		fiber.Locals(c, userKey{}, user)
 		return c.Next()
 	}
+}
+
+// Identify authenticates the request and stores the user for CurrentUser. It accepts a token either as
+// "Bearer <token>" or as the password of HTTP Basic auth, which is what Maven and Gradle send.
+func Identify(c fiber.Ctx, tokens *repository.TokenRepository) error {
+	username, token, ok := parseAuthorization(c.Get(fiber.HeaderAuthorization))
+	if !ok {
+		c.Set(fiber.HeaderWWWAuthenticate, `Basic realm="simplemavenrepo"`)
+		return fiber.NewError(fiber.StatusUnauthorized, "authentication required")
+	}
+
+	user, err := tokens.Authenticate(c.Context(), token)
+	if err == nil && username != "" && username != user.Username {
+		err = repository.ErrInvalidCredentials
+	}
+	if err != nil {
+		if !errors.Is(err, repository.ErrInvalidCredentials) {
+			log.Printf("Authentication failed: %v", err)
+			return fiber.ErrInternalServerError
+		}
+		c.Set(fiber.HeaderWWWAuthenticate, `Basic realm="simplemavenrepo"`)
+		return fiber.NewError(fiber.StatusUnauthorized, "invalid credentials")
+	}
+
+	fiber.Locals(c, userKey{}, user)
+	return nil
 }
 
 func RequireAdmin(c fiber.Ctx) error {

@@ -66,4 +66,11 @@ func RegisterApiRoutes(app *fiber.App, repos repository.Repositories) {
 	grants.Get("", h.listGrants)
 	grants.Post("", h.createGrant)
 	grants.Delete("/:id", h.deleteGrant)
+
+	artifacts := api.Group("/artifacts", authenticate, auth.RequireAdmin)
+	artifacts.Get("", h.listArtifacts)
+	artifacts.Post("", h.createArtifact)
+	artifacts.Get("/:groupId/:artifactId", h.getArtifact)
+	artifacts.Patch("/:groupId/:artifactId", h.updateArtifact)
+	artifacts.Delete("/:groupId/:artifactId", h.deleteArtifact)
 }

@@ -1,0 +1,18 @@
+info:
+  name: Delete artifact
+  type: http
+  seq: 5
+
+http:
+  method: DELETE
+  url: "{{baseUrl}}/api/artifacts/{{groupId}}/{{artifactId}}"
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+docs: Unregisters the artifact. Its files stay on disk but can no longer be downloaded or uploaded to.

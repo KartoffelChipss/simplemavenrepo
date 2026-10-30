@@ -101,3 +101,66 @@ func TestRepositories(t *testing.T) {
 		t.Fatalf("grants after user deletion: %+v", grants)
 	}
 }
+
+func TestArtifacts(t *testing.T) {
+	ctx := context.Background()
+	r := newTestRepos(t)
+
+	desc := "Demo library"
+	demo, err := r.Artifacts.Create(ctx, "com.example", "demo", true, &desc)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if demo.Path != "com/example/demo" || !demo.Public || demo.Description == nil || *demo.Description != desc {
+		t.Fatalf("unexpected artifact: %+v", demo)
+	}
+	if _, err := r.Artifacts.Create(ctx, "com.example", "demo", false, nil); !errors.Is(err, ErrConflict) {
+		t.Fatalf("duplicate artifact: got %v, want ErrConflict", err)
+	}
+	// Different coordinates that map to the same directory
+	if _, err := r.Artifacts.Create(ctx, "com", "example/demo", false, nil); !errors.Is(err, ErrConflict) {
+		t.Fatalf("artifact with the same path: got %v, want ErrConflict", err)
+	}
+	nested, err := r.Artifacts.Create(ctx, "com.example.demo", "sub", false, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	tests := map[string]int64{
+		"com/example/demo/1.0/demo-1.0.jar":    demo.ID,
+		"com/example/demo/maven-metadata.xml":  demo.ID,
+		"/com/example/demo":                    demo.ID,
+		"com/example/demo/sub/1.0/sub-1.0.pom": nested.ID,
+		"com/example/other/1.0/other-1.0.jar":  0,
+		"com/example":                          0,
+		"com":                                  0,
+	}
+	for p, want := range tests {
+		a, err := r.Artifacts.FindByPath(ctx, p)
+		if want == 0 {
+			if !errors.Is(err, ErrNotFound) {
+				t.Errorf("FindByPath(%q) = %+v, %v; want ErrNotFound", p, a, err)
+			}
+		} else if err != nil || a.ID != want {
+			t.Errorf("FindByPath(%q) = %+v, %v; want id %d", p, a, err, want)
+		}
+	}
+
+	private := false
+	updated, err := r.Artifacts.Update(ctx, demo.ID, &private, nil)
+	if err != nil || updated.Public || updated.Description == nil {
+		t.Fatalf("Update visibility = %+v, %v", updated, err)
+	}
+	empty := ""
+	updated, err = r.Artifacts.Update(ctx, demo.ID, nil, &empty)
+	if err != nil || updated.Public || updated.Description != nil {
+		t.Fatalf("Update clear description = %+v, %v", updated, err)
+	}
+
+	if err := r.Artifacts.Delete(ctx, demo.ID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := r.Artifacts.FindByPath(ctx, "com/example/demo/1.0/demo-1.0.jar"); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("FindByPath after delete: got %v, want ErrNotFound", err)
+	}
+}

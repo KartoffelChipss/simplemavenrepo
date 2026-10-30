@@ -56,6 +56,18 @@ var migrations = []string{
 	CREATE UNIQUE INDEX grants_user ON grants(user_id, pattern, permission) WHERE user_id IS NOT NULL;
 	CREATE UNIQUE INDEX grants_team ON grants(team_id, pattern, permission) WHERE team_id IS NOT NULL;
 	`,
+	`
+	CREATE TABLE artifacts (
+		id          INTEGER PRIMARY KEY,
+		group_id    TEXT    NOT NULL,
+		artifact_id TEXT    NOT NULL,
+		-- Directory of the artifact in the repository, e.g. com/example/demo
+		path        TEXT    NOT NULL GENERATED ALWAYS AS (replace(group_id, '.', '/') || '/' || artifact_id) STORED UNIQUE,
+		is_public   INTEGER NOT NULL DEFAULT 0,
+		description TEXT,
+		created_at  INTEGER NOT NULL
+	);
+	`,
 }
 
 // Open opens the SQLite database at path and migrates it to the latest schema.

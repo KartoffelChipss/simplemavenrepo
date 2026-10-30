@@ -1,6 +1,11 @@
 # Publishing to simplemavenrepo
 
-Publishing requires a token whose user has a **write** grant on the artifact's path.
+Publishing requires a token whose user has a **write** grant on the artifact's path. The artifact must also be
+registered by an admin first. Unregistered artifacts can't be uploaded or downloaded.
+
+Downloading a **private** artifact requires a token with a **read** (or write) grant. Consumers configure the same
+`<server>` credentials as below, with an `<id>` matching the repository in their `<repositories>`. Public artifacts
+can be downloaded without a token.
 
 ## Maven
 
@@ -92,4 +97,5 @@ gradle publish
 |---|---|
 | `401 Unauthorized` | No credentials were sent, the token is wrong or expired, or the username doesn't own the token. Check that the server `<id>` (Maven) or repository `name` (Gradle) matches. |
 | `403 Forbidden` | The token is valid but no grant of the user or their teams covers the artifact. Check `GET /api/me`. |
+| `404 Not Found` | The artifact isn't registered. Maven reports this as "Could not find artifact". |
 | `415 Unsupported Media Type` | Only `.jar` and `.pom` files are stored. For Gradle, disable module metadata as shown above. |

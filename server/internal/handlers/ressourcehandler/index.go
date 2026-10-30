@@ -20,10 +20,11 @@ func RegisterRessourceRoutes(app *fiber.App, repos repository.Repositories) {
 		MaxAge:        0,
 		CacheDuration: -1,
 	})
-	releasesGroup.Get("/*/maven-metadata.xml*", volatile)
-	releasesGroup.Get("/*-SNAPSHOT/*", volatile)
+	readGuard := newReadGuard(repos)
+	releasesGroup.Get("/*/maven-metadata.xml*", readGuard, volatile)
+	releasesGroup.Get("/*-SNAPSHOT/*", readGuard, volatile)
 
-	releasesGroup.Get("/*", static.New(config.GetRepoPath(), static.Config{
+	releasesGroup.Get("/*", readGuard, static.New(config.GetRepoPath(), static.Config{
 		ByteRange:     true,
 		MaxAge:        31536000, // 1 year
 		CacheDuration: 10 * time.Minute,
@@ -33,5 +34,5 @@ func RegisterRessourceRoutes(app *fiber.App, repos repository.Repositories) {
 	if err != nil {
 		log.Fatalf("Cannot open repository path: %v", err)
 	}
-	releasesGroup.Put("/*", auth.Authenticate(repos.Tokens), newUploadHandler(root, repos.Grants))
+	releasesGroup.Put("/*", auth.Authenticate(repos.Tokens), newUploadHandler(root, repos))
 }

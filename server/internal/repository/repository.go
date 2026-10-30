@@ -16,18 +16,20 @@ var (
 )
 
 type Repositories struct {
-	Users  *UserRepository
-	Teams  *TeamRepository
-	Tokens *TokenRepository
-	Grants *GrantRepository
+	Users     *UserRepository
+	Teams     *TeamRepository
+	Tokens    *TokenRepository
+	Grants    *GrantRepository
+	Artifacts *ArtifactRepository
 }
 
 func New(db *sql.DB) Repositories {
 	return Repositories{
-		Users:  &UserRepository{db: db},
-		Teams:  &TeamRepository{db: db},
-		Tokens: &TokenRepository{db: db},
-		Grants: &GrantRepository{db: db},
+		Users:     &UserRepository{db: db},
+		Teams:     &TeamRepository{db: db},
+		Tokens:    &TokenRepository{db: db},
+		Grants:    &GrantRepository{db: db},
+		Artifacts: &ArtifactRepository{db: db},
 	}
 }
 
