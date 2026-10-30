@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -8,8 +9,10 @@ import (
 	"net"
 	"os"
 	"simplemavenrepo/internal/config"
+	"simplemavenrepo/internal/db"
 	"simplemavenrepo/internal/handlers/apihandler"
 	"simplemavenrepo/internal/handlers/ressourcehandler"
+	"simplemavenrepo/internal/repository"
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/middleware/logger"
@@ -43,6 +46,26 @@ func checkDirAccess(dir string) error {
 	return os.Remove(name)
 }
 
+// bootstrapAdmin creates an initial admin user when the database has no users, so the management API can be used.
+func bootstrapAdmin(repos repository.Repositories) error {
+	ctx := context.Background()
+	n, err := repos.Users.Count(ctx)
+	if err != nil || n > 0 {
+		return err
+	}
+
+	admin, err := repos.Users.Create(ctx, "admin", true)
+	if err != nil {
+		return err
+	}
+	_, secret, err := repos.Tokens.Create(ctx, admin.ID, "bootstrap", nil)
+	if err != nil {
+		return err
+	}
+	log.Printf("Created initial admin user %q with token %s - store it now, it will not be shown again", admin.Username, secret)
+	return nil
+}
+
 func main() {
 	app := fiber.New(fiber.Config{
 		BodyLimit:         config.GetBodyLimit(),
@@ -61,7 +84,26 @@ func main() {
 	}
 	log.Printf("Using repository path: %s", repoPath)
 
-	apihandler.RegisterApiRoutes(app)
+	configPath := config.GetConfigPath()
+	err = os.MkdirAll(configPath, os.ModePerm)
+	if err != nil {
+		log.Fatalf("Failed to create config directory: %v", err)
+	}
+	log.Printf("Using config path: %s", configPath)
+
+	database, err := db.Open(config.GetDBPath())
+	if err != nil {
+		log.Fatalf("Database error: %v", err)
+	}
+	defer database.Close()
+	log.Printf("Using database: %s", config.GetDBPath())
+
+	repos := repository.New(database)
+	if err := bootstrapAdmin(repos); err != nil {
+		log.Fatalf("Creating initial admin failed: %v", err)
+	}
+
+	apihandler.RegisterApiRoutes(app, repos)
 	ressourcehandler.RegisterRessourceRoutes(app)
 
 	addr := net.JoinHostPort(config.GetHost(), config.GetPort())

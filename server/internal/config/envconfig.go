@@ -3,6 +3,7 @@ package config
 import (
 	"log"
 	"os"
+	"path/filepath"
 	"simplemavenrepo/internal/util"
 )
 
@@ -27,6 +28,14 @@ func GetHost() string {
 
 func GetRepoPath() string {
 	return getEnv("SMR_REPO_PATH", "./repo")
+}
+
+func GetDBPath() string {
+	return filepath.Join(GetConfigPath(), "smr.db")
+}
+
+func GetConfigPath() string {
+	return getEnv("SMR_CONFIG_PATH", "./config")
 }
 
 func GetBodyLimit() int {
