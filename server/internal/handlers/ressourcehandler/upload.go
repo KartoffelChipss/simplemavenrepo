@@ -49,6 +49,10 @@ func newUploadHandler(root *os.Root) fiber.Handler {
 			log.Printf("Upload of %s failed: %v", relPath, err)
 			return fiber.NewError(fiber.StatusInternalServerError, "failed to store file")
 		}
+		if err := updateMetadata(root, relPath); err != nil {
+			log.Printf("Updating metadata for %s failed: %v", relPath, err)
+			return fiber.NewError(fiber.StatusInternalServerError, "failed to update metadata")
+		}
 		return c.SendStatus(fiber.StatusCreated)
 	}
 }
@@ -105,6 +109,31 @@ func hasStoredExtension(p string) bool {
 }
 
 func writeFileAtomicWithHashes(root *os.Root, relPath string, body io.Reader) error {
+	hashes := map[string]hash.Hash{
+		"md5":    md5.New(),
+		"sha1":   sha1.New(),
+		"sha256": sha256.New(),
+		"sha512": sha512.New(),
+	}
+
+	var hashWriters []io.Writer
+	for _, h := range hashes {
+		hashWriters = append(hashWriters, h)
+	}
+	if err := writeFileAtomic(root, relPath, body, hashWriters...); err != nil {
+		return err
+	}
+
+	for ext, h := range hashes {
+		sum := hex.EncodeToString(h.Sum(nil))
+		if err := writeFileAtomic(root, relPath+"."+ext, strings.NewReader(sum)); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func writeFileAtomic(root *os.Root, relPath string, body io.Reader, extra ...io.Writer) error {
 	dir := path.Dir(relPath)
 	if err := root.MkdirAll(dir, 0o755); err != nil {
 		return err
@@ -116,23 +145,7 @@ func writeFileAtomicWithHashes(root *os.Root, relPath string, body io.Reader) er
 		return err
 	}
 
-	hashes := map[string]hash.Hash{
-		"md5":    md5.New(),
-		"sha1":   sha1.New(),
-		"sha256": sha256.New(),
-		"sha512": sha512.New(),
-	}
-
-	writers := []io.Writer{tmp}
-	for _, h := range hashes {
-		writers = append(writers, h)
-	}
-	_, err = io.Copy(io.MultiWriter(writers...), body)
-
-	for ext, h := range hashes {
-		sum := hex.EncodeToString(h.Sum(nil))
-		_ = root.WriteFile(relPath+"."+ext, []byte(sum), 0o644)
-	}
+	_, err = io.Copy(io.MultiWriter(append([]io.Writer{tmp}, extra...)...), body)
 
 	if closeErr := tmp.Close(); err == nil {
 		err = closeErr
