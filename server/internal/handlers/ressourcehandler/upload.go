@@ -2,8 +2,14 @@ package ressourcehandler
 
 import (
 	"bytes"
+	"crypto/md5"
+	"crypto/sha1"
+	"crypto/sha256"
+	"crypto/sha512"
+	"encoding/hex"
 	"errors"
 	"fmt"
+	"hash"
 	"io"
 	"log"
 	"math/rand/v2"
@@ -39,7 +45,7 @@ func newUploadHandler(root *os.Root) fiber.Handler {
 			body = bytes.NewReader(c.Body())
 		}
 
-		if err := writeFileAtomic(root, relPath, body); err != nil {
+		if err := writeFileAtomicWithHashes(root, relPath, body); err != nil {
 			log.Printf("Upload of %s failed: %v", relPath, err)
 			return fiber.NewError(fiber.StatusInternalServerError, "failed to store file")
 		}
@@ -98,7 +104,7 @@ func hasStoredExtension(p string) bool {
 	return false
 }
 
-func writeFileAtomic(root *os.Root, relPath string, body io.Reader) error {
+func writeFileAtomicWithHashes(root *os.Root, relPath string, body io.Reader) error {
 	dir := path.Dir(relPath)
 	if err := root.MkdirAll(dir, 0o755); err != nil {
 		return err
@@ -110,7 +116,24 @@ func writeFileAtomic(root *os.Root, relPath string, body io.Reader) error {
 		return err
 	}
 
-	_, err = io.Copy(tmp, body)
+	hashes := map[string]hash.Hash{
+		"md5":    md5.New(),
+		"sha1":   sha1.New(),
+		"sha256": sha256.New(),
+		"sha512": sha512.New(),
+	}
+
+	writers := []io.Writer{tmp}
+	for _, h := range hashes {
+		writers = append(writers, h)
+	}
+	_, err = io.Copy(io.MultiWriter(writers...), body)
+
+	for ext, h := range hashes {
+		sum := hex.EncodeToString(h.Sum(nil))
+		_ = root.WriteFile(relPath+"."+ext, []byte(sum), 0o644)
+	}
+
 	if closeErr := tmp.Close(); err == nil {
 		err = closeErr
 	}
