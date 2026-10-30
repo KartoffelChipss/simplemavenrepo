@@ -3,14 +3,16 @@ package ressourcehandler
 import (
 	"log"
 	"os"
+	"simplemavenrepo/internal/auth"
 	"simplemavenrepo/internal/config"
+	"simplemavenrepo/internal/repository"
 	"time"
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/middleware/static"
 )
 
-func RegisterRessourceRoutes(app *fiber.App) {
+func RegisterRessourceRoutes(app *fiber.App, repos repository.Repositories) {
 	releasesGroup := app.Group("/releases")
 
 	volatile := static.New(config.GetRepoPath(), static.Config{
@@ -31,5 +33,5 @@ func RegisterRessourceRoutes(app *fiber.App) {
 	if err != nil {
 		log.Fatalf("Cannot open repository path: %v", err)
 	}
-	releasesGroup.Put("/*", newUploadHandler(root))
+	releasesGroup.Put("/*", auth.Authenticate(repos.Tokens), newUploadHandler(root, repos.Grants))
 }

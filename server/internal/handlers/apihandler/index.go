@@ -2,6 +2,7 @@ package apihandler
 
 import (
 	"errors"
+	"simplemavenrepo/internal/auth"
 	"simplemavenrepo/internal/repository"
 
 	"github.com/gofiber/fiber/v3"
@@ -35,13 +36,15 @@ func RegisterApiRoutes(app *fiber.App, repos repository.Repositories) {
 
 	api.Get("/about", aboutHandler)
 
-	me := api.Group("/me", h.authenticate)
+	authenticate := auth.Authenticate(repos.Tokens)
+
+	me := api.Group("/me", authenticate)
 	me.Get("", h.getMe)
 	me.Get("/tokens", h.listMyTokens)
 	me.Post("/tokens", h.createMyToken)
 	me.Delete("/tokens/:id", h.deleteMyToken)
 
-	users := api.Group("/users", h.authenticate, requireAdmin)
+	users := api.Group("/users", authenticate, auth.RequireAdmin)
 	users.Get("", h.listUsers)
 	users.Post("", h.createUser)
 	users.Get("/:username", h.getUser)
@@ -51,7 +54,7 @@ func RegisterApiRoutes(app *fiber.App, repos repository.Repositories) {
 	users.Post("/:username/tokens", h.createUserToken)
 	users.Delete("/:username/tokens/:id", h.deleteUserToken)
 
-	teams := api.Group("/teams", h.authenticate, requireAdmin)
+	teams := api.Group("/teams", authenticate, auth.RequireAdmin)
 	teams.Get("", h.listTeams)
 	teams.Post("", h.createTeam)
 	teams.Get("/:team", h.getTeam)
@@ -59,7 +62,7 @@ func RegisterApiRoutes(app *fiber.App, repos repository.Repositories) {
 	teams.Put("/:team/members/:username", h.addTeamMember)
 	teams.Delete("/:team/members/:username", h.removeTeamMember)
 
-	grants := api.Group("/grants", h.authenticate, requireAdmin)
+	grants := api.Group("/grants", authenticate, auth.RequireAdmin)
 	grants.Get("", h.listGrants)
 	grants.Post("", h.createGrant)
 	grants.Delete("/:id", h.deleteGrant)

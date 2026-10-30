@@ -11,7 +11,7 @@ http:
     data: |-
       {
         "user": "{{username}}",
-        "pattern": "com/example/**",
+        "pattern": "org/example/**",
         "permission": "write"
       }
   auth: inherit

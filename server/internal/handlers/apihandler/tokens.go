@@ -1,6 +1,7 @@
 package apihandler
 
 import (
+	"simplemavenrepo/internal/auth"
 	"simplemavenrepo/internal/repository"
 	"time"
 
@@ -54,9 +55,9 @@ func (h *handler) deleteToken(c fiber.Ctx, u repository.User) error {
 	return c.SendStatus(fiber.StatusNoContent)
 }
 
-func (h *handler) listMyTokens(c fiber.Ctx) error  { return h.listTokens(c, currentUser(c)) }
-func (h *handler) createMyToken(c fiber.Ctx) error { return h.createToken(c, currentUser(c)) }
-func (h *handler) deleteMyToken(c fiber.Ctx) error { return h.deleteToken(c, currentUser(c)) }
+func (h *handler) listMyTokens(c fiber.Ctx) error  { return h.listTokens(c, auth.CurrentUser(c)) }
+func (h *handler) createMyToken(c fiber.Ctx) error { return h.createToken(c, auth.CurrentUser(c)) }
+func (h *handler) deleteMyToken(c fiber.Ctx) error { return h.deleteToken(c, auth.CurrentUser(c)) }
 
 func (h *handler) withUserParam(c fiber.Ctx, next func(fiber.Ctx, repository.User) error) error {
 	u, err := h.repos.Users.Get(c.Context(), c.Params("username"))

@@ -104,7 +104,7 @@ func main() {
 	}
 
 	apihandler.RegisterApiRoutes(app, repos)
-	ressourcehandler.RegisterRessourceRoutes(app)
+	ressourcehandler.RegisterRessourceRoutes(app, repos)
 
 	addr := net.JoinHostPort(config.GetHost(), config.GetPort())
 	log.Println("Server starting on " + addr)

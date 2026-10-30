@@ -1,6 +1,7 @@
 package apihandler
 
 import (
+	"simplemavenrepo/internal/auth"
 	"simplemavenrepo/internal/repository"
 
 	"github.com/gofiber/fiber/v3"
@@ -25,7 +26,7 @@ func (h *handler) userDetails(c fiber.Ctx, u repository.User) error {
 }
 
 func (h *handler) getMe(c fiber.Ctx) error {
-	return h.userDetails(c, currentUser(c))
+	return h.userDetails(c, auth.CurrentUser(c))
 }
 
 func (h *handler) listUsers(c fiber.Ctx) error {

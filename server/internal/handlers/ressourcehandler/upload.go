@@ -15,6 +15,8 @@ import (
 	"math/rand/v2"
 	"os"
 	"path"
+	"simplemavenrepo/internal/auth"
+	"simplemavenrepo/internal/repository"
 	"strings"
 
 	"github.com/gofiber/fiber/v3"
@@ -24,11 +26,20 @@ var ignoredSuffixes = []string{".md5", ".sha1", ".sha256", ".sha512"}
 
 var storedExtensions = []string{".jar", ".pom"}
 
-func newUploadHandler(root *os.Root) fiber.Handler {
+func newUploadHandler(root *os.Root, grants *repository.GrantRepository) fiber.Handler {
 	return func(c fiber.Ctx) error {
 		relPath, err := validateUploadPath(c.Params("*"))
 		if err != nil {
 			return fiber.NewError(fiber.StatusBadRequest, err.Error())
+		}
+
+		allowed, err := auth.Authorize(c.Context(), grants, auth.CurrentUser(c), relPath, repository.PermissionWrite)
+		if err != nil {
+			log.Printf("Checking permissions for %s failed: %v", relPath, err)
+			return fiber.ErrInternalServerError
+		}
+		if !allowed {
+			return fiber.NewError(fiber.StatusForbidden, "no write permission for "+path.Dir(relPath))
 		}
 
 		if isIgnoredUpload(relPath) {
