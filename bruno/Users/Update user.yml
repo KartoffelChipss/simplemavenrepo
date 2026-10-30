@@ -1,0 +1,22 @@
+info:
+  name: Update user
+  type: http
+  seq: 4
+
+http:
+  method: PATCH
+  url: "{{baseUrl}}/api/users/{{username}}"
+  body:
+    type: json
+    data: |-
+      {
+        "isAdmin": true
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true

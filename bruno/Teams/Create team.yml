@@ -1,0 +1,22 @@
+info:
+  name: Create team
+  type: http
+  seq: 2
+
+http:
+  method: POST
+  url: "{{baseUrl}}/api/teams"
+  body:
+    type: json
+    data: |-
+      {
+        "name": "{{team}}"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true

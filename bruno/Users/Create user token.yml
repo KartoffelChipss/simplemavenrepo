@@ -1,0 +1,33 @@
+info:
+  name: Create user token
+  type: http
+  seq: 6
+
+http:
+  method: POST
+  url: "{{baseUrl}}/api/users/{{username}}/tokens"
+  body:
+    type: json
+    data: |-
+      {
+        "name": "ci",
+        "expiresAt": "2027-12-31T00:00:00Z"
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: after-response
+      code: |-
+        if (res.status === 201) {
+          bru.setVar("tokenId", res.body.id);
+        }
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+docs: The plaintext `token` in the response is only shown once.

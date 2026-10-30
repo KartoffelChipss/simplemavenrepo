@@ -1,0 +1,33 @@
+info:
+  name: Create my token
+  type: http
+  seq: 3
+
+http:
+  method: POST
+  url: "{{baseUrl}}/api/me/tokens"
+  body:
+    type: json
+    data: |-
+      {
+        "name": "laptop",
+        "expiresAt": null
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: after-response
+      code: |-
+        if (res.status === 201) {
+          bru.setVar("tokenId", res.body.id);
+        }
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+docs: The plaintext `token` in the response is only shown once.

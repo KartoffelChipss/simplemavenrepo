@@ -1,0 +1,25 @@
+opencollection: 1.0.0
+
+info:
+  name: simplemavenrepo
+
+request:
+  auth:
+    type: bearer
+    token: "{{token}}"
+
+docs:
+  content: |-
+    Management API of simplemavenrepo.
+
+    1. Select the `Local` environment and set its secret `token` variable. On first start the server
+       logs a token for the `admin` user.
+    2. `username`, `team`, `tokenId` and `grantId` in the environment pick which entity a request targets.
+       Create requests store the new id in `tokenId` / `grantId`, which the delete requests use.
+  type: text/markdown
+bundled: false
+extensions:
+  bruno:
+    ignore:
+      - node_modules
+      - .git

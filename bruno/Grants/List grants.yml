@@ -1,0 +1,27 @@
+info:
+  name: List grants
+  type: http
+  seq: 1
+
+http:
+  method: GET
+  url: "{{baseUrl}}/api/grants"
+  params:
+    - name: user
+      value: "{{username}}"
+      type: query
+      disabled: true
+    - name: team
+      value: "{{team}}"
+      type: query
+      disabled: true
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+docs: Enable the `user` or `team` query parameter to filter.

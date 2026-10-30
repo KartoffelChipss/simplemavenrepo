@@ -1,0 +1,34 @@
+info:
+  name: Create user grant
+  type: http
+  seq: 2
+
+http:
+  method: POST
+  url: "{{baseUrl}}/api/grants"
+  body:
+    type: json
+    data: |-
+      {
+        "user": "{{username}}",
+        "pattern": "com/example/**",
+        "permission": "write"
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: after-response
+      code: |-
+        if (res.status === 201) {
+          bru.setVar("grantId", res.body.id);
+        }
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+docs: "`permission` is `read` or `write`. `pattern` is a repository path like `com/example/**`; `**` matches everything."

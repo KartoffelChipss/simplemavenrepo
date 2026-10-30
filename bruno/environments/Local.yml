@@ -1,0 +1,15 @@
+name: Local
+variables:
+  - name: baseUrl
+    value: http://127.0.0.1:4321
+  - name: username
+    value: alice
+  - name: team
+    value: devs
+  - name: tokenId
+    value: ""
+  - name: grantId
+    value: ""
+  - secret: true
+    name: token
+    description: ""
