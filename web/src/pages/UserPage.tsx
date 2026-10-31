@@ -19,6 +19,7 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import { UserAvatar } from '@/components/UserAvatar.tsx';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -308,6 +309,7 @@ export function UserPage() {
             {user && (
                 <>
                     <div className="flex flex-wrap items-center gap-3">
+                        <UserAvatar username={user.username} size={40} />
                         <h1 className="text-2xl font-semibold tracking-tight">{user.username}</h1>
                         {user.isAdmin && <Badge>Administrator</Badge>}
                         {isSelf && <Badge variant="outline">You</Badge>}

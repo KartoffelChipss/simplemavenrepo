@@ -15,6 +15,7 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import { UserAvatar } from '@/components/UserAvatar.tsx';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -123,14 +124,13 @@ function MembersCard({ team }: { team: TeamDetails }) {
                                 {team.members.map((member) => (
                                     <TableRow key={member.id}>
                                         <TableCell className="font-medium">
-                                            <Link to={`/users/${encodeURIComponent(member.username)}`}>
-                                                {member.username}
-                                            </Link>
-                                            {member.isAdmin && (
-                                                <Badge variant="secondary" className="ml-2">
-                                                    Administrator
-                                                </Badge>
-                                            )}
+                                            <div className="flex items-center gap-2">
+                                                <UserAvatar username={member.username} size={24} />
+                                                <Link to={`/users/${encodeURIComponent(member.username)}`}>
+                                                    {member.username}
+                                                </Link>
+                                                {member.isAdmin && <Badge variant="secondary">Administrator</Badge>}
+                                            </div>
                                         </TableCell>
                                         <TableCell className="w-0">
                                             <RemoveMemberButton team={team.name} user={member} />

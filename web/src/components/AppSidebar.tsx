@@ -1,6 +1,6 @@
 import { useLogout, useMe } from '@/api/auth.ts';
 import { useServerName } from '@/api/settings.ts';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { UserAvatar } from '@/components/UserAvatar.tsx';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -104,11 +104,7 @@ function UserMenu() {
         logout.mutate(undefined, { onSuccess: () => void navigate('/') });
     }
 
-    const avatar = (
-        <Avatar className="rounded-lg after:rounded-lg">
-            <AvatarFallback className="rounded-lg uppercase">{user.username.slice(0, 2)}</AvatarFallback>
-        </Avatar>
-    );
+    const avatar = <UserAvatar username={user.username} size={32} className="rounded-lg" />;
 
     return (
         <SidebarMenu>

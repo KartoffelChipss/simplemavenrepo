@@ -1,5 +1,6 @@
 import { useDeploys } from '@/api/artifacts.ts';
 import type { Artifact } from '@/api/types.ts';
+import { UserAvatar } from '@/components/UserAvatar.tsx';
 import { Badge } from '@/components/ui/badge';
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
 import {
@@ -146,7 +147,12 @@ export function DeployLog({ artifact }: { artifact: Artifact }) {
                                     <TableCell className="whitespace-nowrap">
                                         {formatDateTime(deploy.createdAt)}
                                     </TableCell>
-                                    <TableCell className="font-medium">{deploy.username}</TableCell>
+                                    <TableCell className="font-medium">
+                                        <div className="flex items-center gap-2">
+                                            <UserAvatar username={deploy.username} size={20} />
+                                            {deploy.username}
+                                        </div>
+                                    </TableCell>
                                     <TableCell className="font-mono">{deploy.version}</TableCell>
                                     <TableCell className="font-mono text-muted-foreground">{deploy.file}</TableCell>
                                     <TableCell className="whitespace-normal">

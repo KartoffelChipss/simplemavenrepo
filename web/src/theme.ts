@@ -19,12 +19,16 @@ function readTheme(): Theme {
 
 let current = readTheme();
 
+const isDark = () => current === 'dark' || (current === 'system' && systemDark.matches);
+
 function apply() {
-    const dark = current === 'dark' || (current === 'system' && systemDark.matches);
-    document.documentElement.classList.toggle('dark', dark);
+    document.documentElement.classList.toggle('dark', isDark());
 }
 
-systemDark.addEventListener('change', apply);
+systemDark.addEventListener('change', () => {
+    apply();
+    listeners.forEach((l) => l());
+});
 apply();
 
 export function setTheme(theme: Theme) {
@@ -46,4 +50,9 @@ function subscribe(listener: () => void) {
 
 export function useTheme(): Theme {
     return useSyncExternalStore(subscribe, () => current);
+}
+
+/** Whether the dark theme is shown, resolving the system theme. */
+export function useIsDark(): boolean {
+    return useSyncExternalStore(subscribe, isDark);
 }

@@ -2,6 +2,7 @@ import { useMe } from '@/api/auth.ts';
 import { useUsers } from '@/api/users.ts';
 import { PageHeader } from '@/components/PageHeader.tsx';
 import { CreateUserDialog } from '@/components/users/CreateUserDialog.tsx';
+import { UserAvatar } from '@/components/UserAvatar.tsx';
 import { Badge } from '@/components/ui/badge';
 import { InputGroup, InputGroupAddon, InputGroupInput } from '@/components/ui/input-group';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -86,12 +87,15 @@ export function UsersPage() {
                                             onClick={() => void navigate(to)}
                                         >
                                             <TableCell className="font-medium">
-                                                <Link to={to} onClick={(e) => e.stopPropagation()}>
-                                                    {user.username}
-                                                </Link>
-                                                {user.id === me?.id && (
-                                                    <span className="ml-2 text-muted-foreground">(you)</span>
-                                                )}
+                                                <div className="flex items-center gap-2">
+                                                    <UserAvatar username={user.username} size={24} />
+                                                    <Link to={to} onClick={(e) => e.stopPropagation()}>
+                                                        {user.username}
+                                                    </Link>
+                                                    {user.id === me?.id && (
+                                                        <span className="text-muted-foreground">(you)</span>
+                                                    )}
+                                                </div>
                                             </TableCell>
                                             <TableCell>
                                                 {user.isAdmin ? (
