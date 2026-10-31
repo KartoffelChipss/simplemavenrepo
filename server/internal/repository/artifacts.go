@@ -8,11 +8,11 @@ import (
 )
 
 type Artifact struct {
-	ID         int64  `json:"id"`
-	GroupID    string `json:"groupId"`
-	ArtifactID string `json:"artifactId"`
-	Path       string `json:"path"`
-	Public     bool   `json:"public"`
+	ID                    int64     `json:"id"`
+	GroupID               string    `json:"groupId"`
+	ArtifactID            string    `json:"artifactId"`
+	Path                  string    `json:"path"`
+	Public                bool      `json:"public"`
 	AllowReleaseOverwrite bool      `json:"allowReleaseOverwrite"`
 	Description           *string   `json:"description"`
 	CreatedAt             time.Time `json:"createdAt"`

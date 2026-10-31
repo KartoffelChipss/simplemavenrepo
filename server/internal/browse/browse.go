@@ -22,16 +22,16 @@ const (
 )
 
 type Entry struct {
-	Name string    `json:"name"`
-	Type EntryType `json:"type"`
-	Size       *int64     `json:"size,omitempty"`
-	ModifiedAt *time.Time `json:"modifiedAt,omitempty"`
-	Artifact *repository.Artifact `json:"artifact,omitempty"`
+	Name       string               `json:"name"`
+	Type       EntryType            `json:"type"`
+	Size       *int64               `json:"size,omitempty"`
+	ModifiedAt *time.Time           `json:"modifiedAt,omitempty"`
+	Artifact   *repository.Artifact `json:"artifact,omitempty"`
 }
 
 type Listing struct {
 	// Path is the normalized path, without leading or trailing slashes. The repository root is "".
-	Path string `json:"path"`
+	Path     string               `json:"path"`
 	Artifact *repository.Artifact `json:"artifact,omitempty"`
 	Entries  []Entry              `json:"entries"`
 }
