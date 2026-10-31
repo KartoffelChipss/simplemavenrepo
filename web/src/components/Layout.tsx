@@ -3,20 +3,46 @@ import { AppSidebar } from '@/components/AppSidebar.tsx';
 import { Separator } from '@/components/ui/separator';
 import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { navTitle } from '@/nav.ts';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Outlet, useLocation } from 'react-router';
+
+const SIDEBAR_STORAGE_KEY = 'smr.sidebar';
+
+function readSidebarOpen(): boolean {
+    try {
+        return localStorage.getItem(SIDEBAR_STORAGE_KEY) !== 'collapsed';
+    } catch {
+        // Storage unavailable
+        return true;
+    }
+}
+
+function storeSidebarOpen(open: boolean) {
+    try {
+        if (open) localStorage.removeItem(SIDEBAR_STORAGE_KEY);
+        else localStorage.setItem(SIDEBAR_STORAGE_KEY, 'collapsed');
+    } catch {
+        // Storage unavailable
+    }
+}
 
 export function Layout() {
     const { pathname } = useLocation();
     const title = navTitle(pathname);
     const serverName = useServerName();
+    const [sidebarOpen, setSidebarOpen] = useState(readSidebarOpen);
+
+    function onSidebarOpenChange(open: boolean) {
+        setSidebarOpen(open);
+        storeSidebarOpen(open);
+    }
 
     useEffect(() => {
         document.title = serverName;
     }, [serverName]);
 
     return (
-        <SidebarProvider>
+        <SidebarProvider open={sidebarOpen} onOpenChange={onSidebarOpenChange}>
             <AppSidebar />
             <SidebarInset>
                 <header className="flex h-14 shrink-0 items-center gap-2 border-b px-4">
