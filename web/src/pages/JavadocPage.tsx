@@ -7,8 +7,9 @@ import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTi
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useTheme } from '@/theme.ts';
+import { usePageTitle } from '@/title.ts';
 import { ArrowLeft, BookX } from 'lucide-react';
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router';
 
 const browseUrl = (path: string) => `/browse/${path.split('/').filter(Boolean).map(encodeURIComponent).join('/')}`;
@@ -120,21 +121,17 @@ export function JavadocPage() {
         javadoc?.startPage ??
         '';
 
+    const [frameTitle, setFrameTitle] = useState<string>();
+    usePageTitle(frameTitle || (javadoc ? `${javadoc.artifact.artifactId} ${javadoc.version}` : undefined));
+
     const open = (url: string) => setParams({ page: url });
     const onNavigate = useCallback(
         (reported: string, title: string) => {
-            document.title = title;
+            setFrameTitle(title);
             setParams((p) => (p.get('page') === reported ? p : { page: reported }), { replace: true });
         },
         [setParams]
     );
-
-    useEffect(() => {
-        const previous = document.title;
-        return () => {
-            document.title = previous;
-        };
-    }, []);
 
     if (isPending) {
         return (

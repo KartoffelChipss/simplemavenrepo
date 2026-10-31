@@ -26,6 +26,7 @@ import { toast } from '@/components/ui/toast';
 import { formatDate } from '@/lib/format.ts';
 import { ArrowLeft, Plus, UserMinus } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
+import { usePageTitle } from '@/title.ts';
 import { Link, useNavigate, useParams } from 'react-router';
 
 function RemoveMemberButton({ team, user }: { team: string; user: User }) {
@@ -197,6 +198,7 @@ function DeleteTeamCard({ team }: { team: TeamDetails }) {
 export function TeamPage() {
     const { name = '' } = useParams();
     const { data: team, error, isPending } = useTeam(name);
+    usePageTitle(name);
 
     return (
         <>

@@ -1,9 +1,9 @@
-import { useServerName } from '@/api/settings.ts';
 import { AppSidebar } from '@/components/AppSidebar.tsx';
 import { Separator } from '@/components/ui/separator';
 import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { navTitle } from '@/nav.ts';
-import { useEffect, useState } from 'react';
+import { useDocumentTitle, usePageTitleOverride } from '@/title.ts';
+import { useState } from 'react';
 import { Outlet, useLocation } from 'react-router';
 
 const SIDEBAR_STORAGE_KEY = 'smr.sidebar';
@@ -29,7 +29,7 @@ function storeSidebarOpen(open: boolean) {
 export function Layout() {
     const { pathname } = useLocation();
     const title = navTitle(pathname);
-    const serverName = useServerName();
+    const pageTitle = usePageTitleOverride();
     const [sidebarOpen, setSidebarOpen] = useState(readSidebarOpen);
 
     function onSidebarOpenChange(open: boolean) {
@@ -37,9 +37,8 @@ export function Layout() {
         storeSidebarOpen(open);
     }
 
-    useEffect(() => {
-        document.title = serverName;
-    }, [serverName]);
+    // The home page is titled with the server name alone
+    useDocumentTitle(pageTitle ?? (pathname === '/' ? undefined : title));
 
     return (
         <SidebarProvider open={sidebarOpen} onOpenChange={onSidebarOpenChange}>

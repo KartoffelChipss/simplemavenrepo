@@ -20,6 +20,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { formatBytes, formatDateTime } from '@/lib/format.ts';
 import { cn } from '@/lib/utils';
+import { usePageTitle } from '@/title.ts';
 import { BookOpen, Download, File, Folder, FolderSearch, Lock, Package } from 'lucide-react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router';
 
@@ -240,6 +241,7 @@ function NotFound({ path }: { path: string }) {
 export function BrowsePage() {
     const path = (useParams()['*'] ?? '').split('/').filter(Boolean).join('/');
     const { data: listing, error, isPending, isPlaceholderData } = useBrowse(path);
+    usePageTitle(path.split('/').at(-1) || undefined);
 
     return (
         <>

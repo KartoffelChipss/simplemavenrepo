@@ -26,6 +26,7 @@ import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from '@/components/ui/toast';
 import { formatDate } from '@/lib/format.ts';
+import { usePageTitle } from '@/title.ts';
 import { ArrowLeft, FolderTree } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
@@ -196,6 +197,7 @@ function DeleteArtifactCard({ artifact }: { artifact: Artifact }) {
 export function ArtifactPage() {
     const { groupId = '', artifactId = '' } = useParams();
     const { data: artifact, error, isPending } = useArtifact({ groupId, artifactId });
+    usePageTitle(`${groupId}:${artifactId}`);
 
     return (
         <>

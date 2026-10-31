@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Field, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Spinner } from '@/components/ui/spinner';
+import { useDocumentTitle } from '@/title.ts';
 import { Package } from 'lucide-react';
 
 export function LoginPage() {
@@ -16,6 +17,7 @@ export function LoginPage() {
 
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
+    useDocumentTitle('Log in');
 
     if (user) return <Navigate to={from} replace />;
 

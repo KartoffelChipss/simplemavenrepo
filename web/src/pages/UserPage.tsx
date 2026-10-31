@@ -30,6 +30,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { toast } from '@/components/ui/toast';
 import { formatDate } from '@/lib/format.ts';
 import { ArrowLeft } from 'lucide-react';
+import { usePageTitle } from '@/title.ts';
 import { Link, useNavigate, useParams } from 'react-router';
 
 function AdminSwitch({ user, isSelf }: { user: User; isSelf: boolean }) {
@@ -278,6 +279,7 @@ function DeleteUserCard({ user, isSelf }: { user: User; isSelf: boolean }) {
 export function UserPage() {
     const { username = '' } = useParams();
     const { data: user, error, isPending } = useUser(username);
+    usePageTitle(username);
     const { data: me } = useMe();
     const isSelf = user !== undefined && user.id === me?.id;
 

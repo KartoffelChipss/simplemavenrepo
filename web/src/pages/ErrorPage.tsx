@@ -1,8 +1,10 @@
 import { PageHeader } from '@/components/PageHeader.tsx';
+import { useDocumentTitle } from '@/title.ts';
 import { isRouteErrorResponse, useRouteError } from 'react-router';
 
 export function ErrorPage() {
     const error = useRouteError();
+    useDocumentTitle('Error');
     const message = isRouteErrorResponse(error)
         ? `${error.status} ${error.statusText}`
         : error instanceof Error
