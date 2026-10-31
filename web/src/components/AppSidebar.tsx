@@ -104,7 +104,7 @@ function UserMenu() {
         logout.mutate(undefined, { onSuccess: () => void navigate('/') });
     }
 
-    const avatar = <UserAvatar username={user.username} size={32} className="rounded-lg" />;
+    const avatar = <UserAvatar username={user.username} size={32} className="rounded-lg size-8!" />;
 
     return (
         <SidebarMenu>
