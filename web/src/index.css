@@ -171,4 +171,7 @@
     body {
         @apply bg-background text-foreground;
     }
+    :is(button, [role='button'], [role='switch']):not(:disabled, [aria-disabled='true'], [data-disabled]) {
+        cursor: pointer;
+    }
 }
