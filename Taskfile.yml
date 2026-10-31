@@ -25,3 +25,68 @@ tasks:
               echo "hashed $f"
             done
           ' sh {} +
+
+  web:install:
+    desc: Install the web UI dependencies
+    dir: web
+    sources: [package.json, pnpm-lock.yaml, pnpm-workspace.yaml]
+    cmds:
+      - pnpm install --frozen-lockfile
+
+  web:dev:
+    desc: Run the web UI dev server, proxying API and repository requests to the Go server on :8080
+    dir: web
+    deps: [web:install]
+    cmds:
+      - pnpm dev
+
+  web:lint:
+    desc: Lint the web UI with ESLint
+    dir: web
+    deps: [web:install]
+    cmds:
+      - pnpm lint
+
+  web:lint:fix:
+    desc: Lint the web UI with ESLint and apply automatic fixes
+    dir: web
+    deps: [web:install]
+    cmds:
+      - pnpm lint:fix
+
+  web:format:
+    desc: Format the web UI with Prettier
+    dir: web
+    deps: [web:install]
+    cmds:
+      - pnpm format
+
+  web:format:check:
+    desc: Check that the web UI is formatted with Prettier
+    dir: web
+    deps: [web:install]
+    cmds:
+      - pnpm format:check
+
+  web:check:
+    desc: Run all web UI checks (formatting, lint, types)
+    dir: web
+    deps: [web:install]
+    cmds:
+      - pnpm format:check
+      - pnpm lint
+      - pnpm exec tsc -b
+
+  web:build:
+    desc: Build the web UI into the Go server's embed directory
+    dir: web
+    deps: [web:install]
+    cmds:
+      - pnpm build
+
+  build:
+    desc: Build the server binary with the web UI embedded
+    deps: [web:build]
+    dir: server
+    cmds:
+      - go build -o ../bin/simplemavenrepo .

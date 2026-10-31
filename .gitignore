@@ -3,3 +3,8 @@ repo/
 *.db
 *.db-shm
 *.db-wal
+node_modules/
+server/internal/webui/dist/*
+!server/internal/webui/dist/.gitkeep
+bin/
+.task/

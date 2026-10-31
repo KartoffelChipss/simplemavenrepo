@@ -13,6 +13,7 @@ import (
 	"simplemavenrepo/internal/handlers/apihandler"
 	"simplemavenrepo/internal/handlers/ressourcehandler"
 	"simplemavenrepo/internal/repository"
+	"simplemavenrepo/internal/webui"
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/middleware/logger"
@@ -105,6 +106,7 @@ func main() {
 
 	apihandler.RegisterApiRoutes(app, repos)
 	ressourcehandler.RegisterRessourceRoutes(app, repos)
+	webui.RegisterRoutes(app)
 
 	addr := net.JoinHostPort(config.GetHost(), config.GetPort())
 	log.Println("Server starting on " + addr)
