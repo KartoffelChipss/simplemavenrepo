@@ -4,9 +4,6 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/base64"
-	"errors"
-	"fmt"
-	"io"
 	"log"
 	"net"
 	"os"
@@ -14,43 +11,17 @@ import (
 	"simplemavenrepo/internal/config"
 	"simplemavenrepo/internal/db"
 	"simplemavenrepo/internal/handlers/apihandler"
+	"simplemavenrepo/internal/handlers/healthhandler"
 	"simplemavenrepo/internal/handlers/javadochandler"
 	"simplemavenrepo/internal/handlers/ressourcehandler"
 	"simplemavenrepo/internal/javadoc"
 	"simplemavenrepo/internal/repository"
+	"simplemavenrepo/internal/util"
 	"simplemavenrepo/internal/webui"
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/middleware/logger"
 )
-
-func checkDirAccess(dir string) error {
-	info, err := os.Stat(dir)
-	if err != nil {
-		return err
-	}
-	if !info.IsDir() {
-		return fmt.Errorf("%s is not a directory", dir)
-	}
-
-	f, err := os.Open(dir)
-	if err != nil {
-		return fmt.Errorf("cannot read %s: %w", dir, err)
-	}
-	_, err = f.ReadDir(1)
-	f.Close()
-	if err != nil && !errors.Is(err, io.EOF) {
-		return fmt.Errorf("cannot read %s: %w", dir, err)
-	}
-
-	tmp, err := os.CreateTemp(dir, ".write-test-*")
-	if err != nil {
-		return fmt.Errorf("cannot write to %s: %w", dir, err)
-	}
-	name := tmp.Name()
-	tmp.Close()
-	return os.Remove(name)
-}
 
 // bootstrapAdmin creates an initial admin user when the database has no users, so the management API can be used.
 func bootstrapAdmin(repos repository.Repositories) error {
@@ -85,13 +56,8 @@ func main() {
 		StreamRequestBody: true,
 	})
 
-	app.Use(logger.New(logger.Config{
-		Format:     "[${time}] ${status} - ${method} ${path} (${latency}) - ${ip}\n",
-		TimeFormat: "2006-01-02 15:04:05",
-	}))
-
 	repoPath := config.GetRepoPath()
-	err := checkDirAccess(repoPath)
+	err := util.CheckDirAccess(repoPath)
 	if err != nil {
 		log.Fatalf("Repository path error: %v", err)
 	}
@@ -125,6 +91,14 @@ func main() {
 		log.Fatalf("Javadoc signing key error: %v", err)
 	}
 	signer := javadoc.NewSigner(key)
+
+	// Registered before the logger so probes every few seconds don't flood the request log
+	healthhandler.RegisterHealthRoutes(app, database)
+
+	app.Use(logger.New(logger.Config{
+		Format:     "[${time}] ${status} - ${method} ${path} (${latency}) - ${ip}\n",
+		TimeFormat: "2006-01-02 15:04:05",
+	}))
 
 	apihandler.RegisterApiRoutes(app, repos, root.FS(), signer)
 	javadochandler.RegisterJavadocRoutes(app, root.FS(), signer)
