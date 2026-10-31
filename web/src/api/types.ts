@@ -64,6 +64,26 @@ export interface Artifact {
     createdAt: string;
 }
 
+export interface Deploy {
+    id: number;
+    version: string;
+    file: string;
+    username: string;
+    status: number;
+    success: boolean;
+    error: string | null;
+    size: number | null;
+    createdAt: string;
+}
+
+export interface DeployPage {
+    deploys: Deploy[];
+    total: number;
+    /** Starts at 1. */
+    page: number;
+    pageSize: number;
+}
+
 // Request bodies
 
 export interface LoginRequest {

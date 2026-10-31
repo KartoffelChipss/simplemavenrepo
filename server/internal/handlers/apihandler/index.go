@@ -89,4 +89,5 @@ func RegisterApiRoutes(app *fiber.App, repos repository.Repositories, repoFS fs.
 	artifacts.Get("/:groupId/:artifactId", h.getArtifact)
 	artifacts.Patch("/:groupId/:artifactId", h.updateArtifact)
 	artifacts.Delete("/:groupId/:artifactId", h.deleteArtifact)
+	artifacts.Get("/:groupId/:artifactId/deploys", h.listDeploys)
 }

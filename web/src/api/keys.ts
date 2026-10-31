@@ -31,6 +31,8 @@ export const artifactKeys = {
     all: ['artifacts'] as const,
     list: () => [...artifactKeys.all, 'list'] as const,
     detail: (groupId: string, artifactId: string) => [...artifactKeys.all, 'detail', groupId, artifactId] as const,
+    deploys: (groupId: string, artifactId: string, page: number) =>
+        [...artifactKeys.detail(groupId, artifactId), 'deploys', page] as const,
 };
 
 export const browseKeys = {

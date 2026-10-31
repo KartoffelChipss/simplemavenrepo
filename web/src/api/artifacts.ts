@@ -1,7 +1,7 @@
 import { request, seg } from '@/api/client.ts';
 import { artifactKeys, browseKeys } from '@/api/keys.ts';
-import type { Artifact, CreateArtifactRequest, UpdateArtifactRequest } from '@/api/types.ts';
-import { queryOptions, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import type { Artifact, CreateArtifactRequest, DeployPage, UpdateArtifactRequest } from '@/api/types.ts';
+import { keepPreviousData, queryOptions, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 const artifactPath = (groupId: string, artifactId: string) => `/artifacts/${seg(groupId)}/${seg(artifactId)}`;
 
@@ -13,6 +13,8 @@ export const updateArtifact = (groupId: string, artifactId: string, body: Update
     request<Artifact>('PATCH', artifactPath(groupId, artifactId), body);
 export const deleteArtifact = (groupId: string, artifactId: string) =>
     request<void>('DELETE', artifactPath(groupId, artifactId));
+export const listDeploys = (groupId: string, artifactId: string, page: number, signal?: AbortSignal) =>
+    request<DeployPage>('GET', `${artifactPath(groupId, artifactId)}/deploys?page=${page}`, undefined, signal);
 
 interface ArtifactId {
     groupId: string;
@@ -31,12 +33,25 @@ export const artifactQuery = ({ groupId, artifactId }: ArtifactId) =>
         queryFn: ({ signal }) => getArtifact(groupId, artifactId, signal),
     });
 
+/** One page of the deploy log, newest first. page starts at 1. */
+export const deploysQuery = ({ groupId, artifactId }: ArtifactId, page: number) =>
+    queryOptions({
+        queryKey: artifactKeys.deploys(groupId, artifactId, page),
+        queryFn: ({ signal }) => listDeploys(groupId, artifactId, page, signal),
+        // Keep showing the current page while the next one loads so the table doesn't jump
+        placeholderData: keepPreviousData,
+    });
+
 export function useArtifacts() {
     return useQuery(artifactsQuery());
 }
 
 export function useArtifact(id: ArtifactId) {
     return useQuery(artifactQuery(id));
+}
+
+export function useDeploys(id: ArtifactId, page: number) {
+    return useQuery(deploysQuery(id, page));
 }
 
 export function useCreateArtifact() {

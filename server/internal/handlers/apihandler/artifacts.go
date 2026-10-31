@@ -14,6 +14,11 @@ var (
 
 const maxDescriptionLength = 1000
 
+const (
+	defaultDeployPageSize = 10
+	maxDeployPageSize     = 100
+)
+
 func validateDescription(d *string) error {
 	if d != nil && len(*d) > maxDescriptionLength {
 		return fiber.NewError(fiber.StatusBadRequest, "description must be at most 1000 characters")
@@ -106,4 +111,22 @@ func (h *handler) deleteArtifact(c fiber.Ctx) error {
 		return repoError(err, "artifact")
 	}
 	return c.SendStatus(fiber.StatusNoContent)
+}
+
+func (h *handler) listDeploys(c fiber.Ctx) error {
+	a, err := h.artifactParam(c)
+	if err != nil {
+		return err
+	}
+	page := fiber.Query[int](c, "page", 1)
+	pageSize := fiber.Query[int](c, "pageSize", defaultDeployPageSize)
+	if page < 1 || pageSize < 1 || pageSize > maxDeployPageSize {
+		return fiber.NewError(fiber.StatusBadRequest, "invalid page or pageSize")
+	}
+
+	deploys, total, err := h.repos.Deploys.List(c.Context(), a.Path, (page-1)*pageSize, pageSize)
+	if err != nil {
+		return repoError(err, "deploy")
+	}
+	return c.JSON(fiber.Map{"deploys": deploys, "total": total, "page": page, "pageSize": pageSize})
 }

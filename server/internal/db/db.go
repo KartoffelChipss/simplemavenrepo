@@ -83,6 +83,21 @@ var migrations = []string{
 	`
 	ALTER TABLE artifacts ADD COLUMN allow_release_overwrite INTEGER NOT NULL DEFAULT 0;
 	`,
+	`
+	-- Keyed by the artifact directory instead of its id so the log survives deleting and re-registering the artifact, just like its files. The username is copied so entries stay readable after the user is deleted.
+	CREATE TABLE deploys (
+		id            INTEGER PRIMARY KEY,
+		artifact_path TEXT    NOT NULL,
+		version       TEXT    NOT NULL,
+		file          TEXT    NOT NULL,
+		username      TEXT    NOT NULL,
+		status        INTEGER NOT NULL,
+		error         TEXT,
+		size          INTEGER,
+		created_at    INTEGER NOT NULL
+	);
+	CREATE INDEX deploys_artifact ON deploys(artifact_path, id);
+	`,
 }
 
 // Open opens the SQLite database at path and migrates it to the latest schema.

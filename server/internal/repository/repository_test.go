@@ -232,3 +232,40 @@ func TestPasswordsAndSessions(t *testing.T) {
 		t.Fatalf("logged out session: got %v, want ErrInvalidCredentials", err)
 	}
 }
+
+func TestDeploys(t *testing.T) {
+	ctx := context.Background()
+	r := newTestRepos(t)
+
+	size := int64(42)
+	if err := r.Deploys.Record(ctx, "com/example/demo", "1.0", "demo-1.0.jar", "alice", 201, "", &size); err != nil {
+		t.Fatal(err)
+	}
+	if err := r.Deploys.Record(ctx, "com/example/demo", "1.0", "demo-1.0.jar", "bob", 409, "already published", nil); err != nil {
+		t.Fatal(err)
+	}
+	if err := r.Deploys.Record(ctx, "com/example/other", "1.0", "other-1.0.jar", "alice", 201, "", &size); err != nil {
+		t.Fatal(err)
+	}
+
+	deploys, total, err := r.Deploys.List(ctx, "com/example/demo", 0, 10)
+	if err != nil || len(deploys) != 2 || total != 2 {
+		t.Fatalf("List = %+v, %d, %v", deploys, total, err)
+	}
+	failed, ok := deploys[0], deploys[1]
+	if failed.Username != "bob" || failed.Success || failed.Error == nil || *failed.Error != "already published" || failed.Size != nil {
+		t.Errorf("unexpected failed deploy: %+v", failed)
+	}
+	if ok.Username != "alice" || !ok.Success || ok.Error != nil || ok.Size == nil || *ok.Size != 42 || ok.Version != "1.0" {
+		t.Errorf("unexpected successful deploy: %+v", ok)
+	}
+
+	page, total, err := r.Deploys.List(ctx, "com/example/demo", 1, 1)
+	if err != nil || len(page) != 1 || page[0].ID != ok.ID || total != 2 {
+		t.Fatalf("second page = %+v, %d, %v", page, total, err)
+	}
+	page, total, err = r.Deploys.List(ctx, "com/example/demo", 2, 1)
+	if err != nil || len(page) != 0 || total != 2 {
+		t.Fatalf("page past the end = %+v, %d, %v", page, total, err)
+	}
+}

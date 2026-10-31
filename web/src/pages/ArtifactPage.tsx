@@ -1,6 +1,7 @@
 import { useArtifact, useDeleteArtifact, useUpdateArtifact } from '@/api/artifacts.ts';
 import { isApiError } from '@/api/client.ts';
 import type { Artifact } from '@/api/types.ts';
+import { DeployLog } from '@/components/artifacts/DeployLog.tsx';
 import { ReadmeBadge } from '@/components/artifacts/ReadmeBadge.tsx';
 import { artifactBrowseUrl } from '@/components/artifacts/urls.ts';
 import { MAX_DESCRIPTION_LENGTH } from '@/components/artifacts/validation.ts';
@@ -129,6 +130,23 @@ function BadgeCard({ artifact }: { artifact: Artifact }) {
     );
 }
 
+function DeployLogCard({ artifact }: { artifact: Artifact }) {
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle>Deploy log</CardTitle>
+                <CardDescription>
+                    Every upload of a .jar or .pom file, who made it and whether it succeeded. Checksums and metadata
+                    aren’t listed.
+                </CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-4">
+                <DeployLog artifact={artifact} />
+            </CardContent>
+        </Card>
+    );
+}
+
 function DeleteArtifactCard({ artifact }: { artifact: Artifact }) {
     const remove = useDeleteArtifact();
     const navigate = useNavigate();
@@ -223,6 +241,7 @@ export function ArtifactPage() {
                         />
                         <BadgeCard artifact={artifact} />
                     </div>
+                    <DeployLogCard artifact={artifact} />
                     <DeleteArtifactCard artifact={artifact} />
                 </>
             )}

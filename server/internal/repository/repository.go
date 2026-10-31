@@ -22,6 +22,7 @@ type Repositories struct {
 	Sessions  *SessionRepository
 	Grants    *GrantRepository
 	Artifacts *ArtifactRepository
+	Deploys   *DeployRepository
 }
 
 func New(db *sql.DB) Repositories {
@@ -32,6 +33,7 @@ func New(db *sql.DB) Repositories {
 		Sessions:  &SessionRepository{db: db},
 		Grants:    &GrantRepository{db: db},
 		Artifacts: &ArtifactRepository{db: db},
+		Deploys:   &DeployRepository{db: db},
 	}
 }
 
