@@ -98,6 +98,15 @@ var migrations = []string{
 	);
 	CREATE INDEX deploys_artifact ON deploys(artifact_path, id);
 	`,
+	`
+	-- Holds exactly one row, NULL columns fall back to the defaults of the UI.
+	CREATE TABLE settings (
+		id          INTEGER PRIMARY KEY CHECK (id = 1),
+		name        TEXT,
+		description TEXT
+	);
+	INSERT INTO settings (id) VALUES (1);
+	`,
 }
 
 // Open opens the SQLite database at path and migrates it to the latest schema.

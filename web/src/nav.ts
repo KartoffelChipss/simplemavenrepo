@@ -1,5 +1,15 @@
 import type { User } from '@/api/types.ts';
-import { BookOpen, Boxes, FolderTree, KeyRound, UserGroup, UserRound, type LucideIcon } from 'lucide-react';
+import {
+    BookOpen,
+    Boxes,
+    FolderTree,
+    House,
+    KeyRound,
+    Settings,
+    UserGroup,
+    UserRound,
+    type LucideIcon,
+} from 'lucide-react';
 import { matchPath } from 'react-router';
 
 export interface NavItem {
@@ -20,6 +30,7 @@ export const navGroups: NavGroup[] = [
         label: 'Repository',
         visible: () => true,
         items: [
+            { title: 'Home', to: '/', icon: House, end: true },
             { title: 'Browse', to: '/browse', icon: FolderTree },
             { title: 'Javadoc', to: '/docs', icon: BookOpen },
         ],
@@ -36,6 +47,7 @@ export const navGroups: NavGroup[] = [
             { title: 'Artifacts', to: '/artifacts', icon: Boxes },
             { title: 'Users', to: '/users', icon: UserRound },
             { title: 'Teams', to: '/teams', icon: UserGroup },
+            { title: 'Settings', to: '/settings', icon: Settings },
         ],
     },
 ];

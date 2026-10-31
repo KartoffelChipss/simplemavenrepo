@@ -1,4 +1,5 @@
 import { useLogout, useMe } from '@/api/auth.ts';
+import { useServerName } from '@/api/settings.ts';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
     DropdownMenu,
@@ -154,6 +155,7 @@ function UserMenu() {
 export function AppSidebar() {
     const { data: user = null } = useMe();
     const groups = navGroups.filter((g) => g.visible(user));
+    const serverName = useServerName();
 
     return (
         <Sidebar collapsible="icon">
@@ -165,7 +167,7 @@ export function AppSidebar() {
                                 <Package className="size-4" />
                             </div>
                             <div className="grid flex-1 text-left text-sm leading-tight">
-                                <span className="truncate font-semibold">simplemavenrepo</span>
+                                <span className="truncate font-semibold">{serverName}</span>
                                 <span className="truncate text-xs text-muted-foreground">Maven repository</span>
                             </div>
                         </SidebarMenuButton>

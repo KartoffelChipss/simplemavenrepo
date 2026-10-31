@@ -50,6 +50,7 @@ func RegisterApiRoutes(app *fiber.App, repos repository.Repositories, repoFS fs.
 	api.Get("/javadoc", h.listJavadoc)
 	api.Get("/javadoc/*", h.getJavadoc)
 	api.Get("/badge/:groupId/:artifactId", h.getBadge)
+	api.Get("/settings", h.getSettings)
 
 	authenticate := auth.Authenticate(repos)
 
@@ -82,6 +83,8 @@ func RegisterApiRoutes(app *fiber.App, repos repository.Repositories, repoFS fs.
 	grants.Get("", h.listGrants)
 	grants.Post("", h.createGrant)
 	grants.Delete("/:id", h.deleteGrant)
+
+	api.Patch("/settings", authenticate, auth.RequireAdmin, h.updateSettings)
 
 	artifacts := api.Group("/artifacts", authenticate, auth.RequireAdmin)
 	artifacts.Get("", h.listArtifacts)

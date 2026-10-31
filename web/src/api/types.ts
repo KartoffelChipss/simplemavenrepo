@@ -3,6 +3,13 @@ export interface About {
     version: string;
 }
 
+/** Server-wide settings, null when not set. */
+export interface Settings {
+    name: string | null;
+    /** Markdown shown on the home page. */
+    description: string | null;
+}
+
 export interface User {
     id: number;
     username: string;
@@ -136,6 +143,12 @@ export interface CreateArtifactRequest {
 export interface UpdateArtifactRequest {
     public?: boolean;
     allowReleaseOverwrite?: boolean;
+    description?: string;
+}
+
+/** An empty string clears a setting, a missing field leaves it unchanged. */
+export interface UpdateSettingsRequest {
+    name?: string;
     description?: string;
 }
 

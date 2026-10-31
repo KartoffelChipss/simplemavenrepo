@@ -1,12 +1,19 @@
+import { useServerName } from '@/api/settings.ts';
 import { AppSidebar } from '@/components/AppSidebar.tsx';
 import { Separator } from '@/components/ui/separator';
 import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { navTitle } from '@/nav.ts';
+import { useEffect } from 'react';
 import { Outlet, useLocation } from 'react-router';
 
 export function Layout() {
     const { pathname } = useLocation();
     const title = navTitle(pathname);
+    const serverName = useServerName();
+
+    useEffect(() => {
+        document.title = serverName;
+    }, [serverName]);
 
     return (
         <SidebarProvider>

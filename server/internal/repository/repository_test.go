@@ -269,3 +269,23 @@ func TestDeploys(t *testing.T) {
 		t.Fatalf("page past the end = %+v, %d, %v", page, total, err)
 	}
 }
+
+func TestSettings(t *testing.T) {
+	ctx := context.Background()
+	r := newTestRepos(t)
+
+	s, err := r.Settings.Get(ctx)
+	if err != nil || s.Name != nil || s.Description != nil {
+		t.Fatalf("defaults: got %+v, %v", s, err)
+	}
+
+	name, description := "Acme", "# Welcome"
+	if s, err = r.Settings.Update(ctx, &name, &description); err != nil || *s.Name != name || *s.Description != description {
+		t.Fatalf("update: got %+v, %v", s, err)
+	}
+
+	empty := ""
+	if s, err = r.Settings.Update(ctx, nil, &empty); err != nil || s.Name == nil || *s.Name != name || s.Description != nil {
+		t.Fatalf("clear description: got %+v, %v", s, err)
+	}
+}

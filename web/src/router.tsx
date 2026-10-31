@@ -1,4 +1,4 @@
-import { createBrowserRouter, Navigate } from 'react-router';
+import { createBrowserRouter } from 'react-router';
 import { Layout } from './components/Layout.tsx';
 import { RequireAdmin, RequireAuth } from './components/RequireAuth.tsx';
 import { ArtifactPage } from './pages/ArtifactPage.tsx';
@@ -8,7 +8,9 @@ import { ErrorPage } from './pages/ErrorPage.tsx';
 import { JavadocIndexPage } from './pages/JavadocIndexPage.tsx';
 import { JavadocPage } from './pages/JavadocPage.tsx';
 import { LoginPage } from './pages/LoginPage.tsx';
+import { HomePage } from './pages/HomePage.tsx';
 import { NotFoundPage } from './pages/NotFoundPage.tsx';
+import { SettingsPage } from './pages/SettingsPage.tsx';
 import { TeamPage } from './pages/TeamPage.tsx';
 import { TeamsPage } from './pages/TeamsPage.tsx';
 import { TokensPage } from './pages/TokensPage.tsx';
@@ -21,7 +23,7 @@ export const router = createBrowserRouter([
         element: <Layout />,
         errorElement: <ErrorPage />,
         children: [
-            { index: true, element: <Navigate to="/browse" replace /> },
+            { index: true, element: <HomePage /> },
             { path: 'browse/*', element: <BrowsePage /> },
             { path: 'docs', element: <JavadocIndexPage /> },
             { path: 'docs/*', element: <JavadocPage /> },
@@ -38,6 +40,7 @@ export const router = createBrowserRouter([
                             { path: 'users/:username', element: <UserPage /> },
                             { path: 'teams', element: <TeamsPage /> },
                             { path: 'teams/:name', element: <TeamPage /> },
+                            { path: 'settings', element: <SettingsPage /> },
                         ],
                     },
                 ],
