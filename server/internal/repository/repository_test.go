@@ -41,6 +41,10 @@ func TestRepositories(t *testing.T) {
 	if err := r.Teams.AddMember(ctx, team.ID, alice.ID); err != nil {
 		t.Fatalf("re-adding member should be a no-op: %v", err)
 	}
+	members, err := r.Teams.ListMembers(ctx, team.ID)
+	if err != nil || len(members) != 1 || members[0].Username != "alice" {
+		t.Fatalf("members: got %+v, %v", members, err)
+	}
 
 	if _, err := r.Grants.CreateForUser(ctx, alice.ID, "com/alice/**", PermissionWrite); err != nil {
 		t.Fatal(err)
@@ -94,8 +98,8 @@ func TestRepositories(t *testing.T) {
 	if _, err := r.Tokens.Authenticate(ctx, plaintext); !errors.Is(err, ErrInvalidCredentials) {
 		t.Fatalf("token of deleted user: got %v, want ErrInvalidCredentials", err)
 	}
-	if members, _ := r.Teams.ListMembers(ctx, team.ID); len(members) != 0 {
-		t.Fatalf("members after user deletion: %+v", members)
+	if members, err := r.Teams.ListMembers(ctx, team.ID); err != nil || len(members) != 0 {
+		t.Fatalf("members after user deletion: got %+v, %v", members, err)
 	}
 	if grants, _ := r.Grants.List(ctx, GrantFilter{}); len(grants) != 1 || grants[0].Team != "devs" {
 		t.Fatalf("grants after user deletion: %+v", grants)

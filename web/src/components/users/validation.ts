@@ -14,3 +14,5 @@ export function passwordError(password: string): string | undefined {
     if (password.length < MIN_PASSWORD_LENGTH) return `Use at least ${MIN_PASSWORD_LENGTH} characters`;
     if (new TextEncoder().encode(password).length > MAX_PASSWORD_BYTES) return 'This password is too long';
 }
+
+export const teamNameError = usernameError;

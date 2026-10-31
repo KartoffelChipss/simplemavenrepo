@@ -1,8 +1,9 @@
 import { useMe } from '@/api/auth.ts';
 import { isApiError } from '@/api/client.ts';
 import { useUserTokens } from '@/api/tokens.ts';
-import type { Grant, User, UserDetails } from '@/api/types.ts';
+import type { User, UserDetails } from '@/api/types.ts';
 import { useDeleteUser, useUpdateUser, useUser } from '@/api/users.ts';
+import { GrantEditor, PermissionBadge } from '@/components/grants/GrantEditor.tsx';
 import { PageHeader } from '@/components/PageHeader.tsx';
 import { CreateTokenDialog } from '@/components/tokens/CreateTokenDialog.tsx';
 import { TokenTable } from '@/components/tokens/TokenTable.tsx';
@@ -135,17 +136,12 @@ function AccountCard({ user, isSelf }: { user: User; isSelf: boolean }) {
     );
 }
 
-function grantSource(grant: Grant) {
-    return grant.team ? (
-        <span>
-            Team <span className="font-medium">{grant.team}</span>
-        </span>
-    ) : (
-        <span className="text-muted-foreground">Direct</span>
-    );
-}
+const teamPath = (name: string) => `/teams/${encodeURIComponent(name)}`;
 
 function AccessCard({ user }: { user: UserDetails }) {
+    const direct = user.grants.filter((g) => g.user !== undefined);
+    const fromTeams = user.grants.filter((g) => g.team !== undefined);
+
     return (
         <Card>
             <CardHeader>
@@ -156,42 +152,49 @@ function AccessCard({ user }: { user: UserDetails }) {
                         : 'What this user can read and publish, directly or through their teams.'}
                 </CardDescription>
             </CardHeader>
-            <CardContent className="flex flex-col gap-4">
+            <CardContent className="flex flex-col gap-6">
                 <div className="flex flex-wrap items-center gap-2">
                     <span className="text-sm font-medium">Teams</span>
                     {user.teams.length === 0 && <span className="text-sm text-muted-foreground">None</span>}
                     {user.teams.map((team) => (
-                        <Badge key={team.id} variant="secondary" render={<Link to="/teams" />}>
+                        <Badge key={team.id} variant="secondary" render={<Link to={teamPath(team.name)} />}>
                             {team.name}
                         </Badge>
                     ))}
                 </div>
-                {user.grants.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">No grants.</p>
-                ) : (
-                    <div className="rounded-lg border">
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Pattern</TableHead>
-                                    <TableHead>Permission</TableHead>
-                                    <TableHead>From</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {user.grants.map((grant) => (
-                                    <TableRow key={grant.id}>
-                                        <TableCell className="font-mono">{grant.pattern}</TableCell>
-                                        <TableCell>
-                                            <Badge variant={grant.permission === 'write' ? 'default' : 'outline'}>
-                                                {grant.permission === 'write' ? 'Read & write' : 'Read'}
-                                            </Badge>
-                                        </TableCell>
-                                        <TableCell>{grantSource(grant)}</TableCell>
+                <div className="flex flex-col gap-3">
+                    <h3 className="text-sm font-medium">Direct grants</h3>
+                    <GrantEditor grants={direct} target={{ user: user.username }} />
+                </div>
+                {fromTeams.length > 0 && (
+                    <div className="flex flex-col gap-3">
+                        <h3 className="text-sm font-medium">From teams</h3>
+                        <div className="rounded-lg border">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Repository path</TableHead>
+                                        <TableHead>Permission</TableHead>
+                                        <TableHead>Team</TableHead>
                                     </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
+                                </TableHeader>
+                                <TableBody>
+                                    {fromTeams.map((grant) => (
+                                        <TableRow key={grant.id}>
+                                            <TableCell className="font-mono">{grant.pattern}</TableCell>
+                                            <TableCell>
+                                                <PermissionBadge permission={grant.permission} />
+                                            </TableCell>
+                                            <TableCell>
+                                                <Link to={teamPath(grant.team!)} className="font-medium">
+                                                    {grant.team}
+                                                </Link>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </div>
                     </div>
                 )}
             </CardContent>

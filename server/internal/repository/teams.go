@@ -74,7 +74,7 @@ func (r *TeamRepository) Delete(ctx context.Context, name string) error {
 
 func (r *TeamRepository) ListMembers(ctx context.Context, teamID int64) ([]User, error) {
 	rows, err := r.db.QueryContext(ctx, `
-		SELECT u.id, u.username, u.is_admin, u.created_at FROM users u
+		SELECT `+joinedUserColumns+` FROM users u
 		JOIN team_members m ON m.user_id = u.id
 		WHERE m.team_id = ? ORDER BY u.username`, teamID)
 	if err != nil {

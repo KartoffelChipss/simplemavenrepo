@@ -6,6 +6,7 @@ import { BrowsePage } from './pages/BrowsePage.tsx';
 import { ErrorPage } from './pages/ErrorPage.tsx';
 import { LoginPage } from './pages/LoginPage.tsx';
 import { NotFoundPage } from './pages/NotFoundPage.tsx';
+import { TeamPage } from './pages/TeamPage.tsx';
 import { TeamsPage } from './pages/TeamsPage.tsx';
 import { TokensPage } from './pages/TokensPage.tsx';
 import { UserPage } from './pages/UserPage.tsx';
@@ -30,6 +31,7 @@ export const router = createBrowserRouter([
                             { path: 'users', element: <UsersPage /> },
                             { path: 'users/:username', element: <UserPage /> },
                             { path: 'teams', element: <TeamsPage /> },
+                            { path: 'teams/:name', element: <TeamPage /> },
                         ],
                     },
                 ],
