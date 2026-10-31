@@ -1,8 +1,5 @@
+import { PageHeader } from '@/components/PageHeader.tsx';
+
 export function UsersPage() {
-    return (
-        <>
-            <h1>Users</h1>
-            <p>Create and manage users.</p>
-        </>
-    );
+    return <PageHeader title="Users" description="Create and manage users." />;
 }

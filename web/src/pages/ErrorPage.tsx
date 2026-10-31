@@ -1,3 +1,4 @@
+import { PageHeader } from '@/components/PageHeader.tsx';
 import { isRouteErrorResponse, useRouteError } from 'react-router';
 
 export function ErrorPage() {
@@ -9,9 +10,11 @@ export function ErrorPage() {
           : String(error);
 
     return (
-        <main>
-            <h1>Something went wrong</h1>
-            <p className="error">{message}</p>
+        <main className="p-6">
+            <PageHeader
+                title="Something went wrong"
+                description={<span className="text-destructive">{message}</span>}
+            />
         </main>
     );
 }

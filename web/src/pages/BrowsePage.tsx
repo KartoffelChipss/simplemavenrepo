@@ -1,8 +1,5 @@
+import { PageHeader } from '@/components/PageHeader.tsx';
+
 export function BrowsePage() {
-    return (
-        <>
-            <h1>Browse</h1>
-            <p>Browse the repository.</p>
-        </>
-    );
+    return <PageHeader title="Browse" description="Browse the repository." />;
 }

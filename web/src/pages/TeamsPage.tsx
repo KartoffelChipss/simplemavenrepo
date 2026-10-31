@@ -1,8 +1,5 @@
+import { PageHeader } from '@/components/PageHeader.tsx';
+
 export function TeamsPage() {
-    return (
-        <>
-            <h1>Teams</h1>
-            <p>Create and manage teams.</p>
-        </>
-    );
+    return <PageHeader title="Teams" description="Create and manage teams." />;
 }

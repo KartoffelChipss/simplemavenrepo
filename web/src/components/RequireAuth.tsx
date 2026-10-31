@@ -13,6 +13,6 @@ export function RequireAuth() {
 export function RequireAdmin() {
     const { user } = useAuth();
 
-    if (!user?.isAdmin) return <p>You need admin access to view this page.</p>;
+    if (!user?.isAdmin) return <p className="text-muted-foreground">You need admin access to view this page.</p>;
     return <Outlet />;
 }

@@ -1,50 +1,26 @@
-import { Link, NavLink, Outlet, useNavigate } from 'react-router';
-import { useAuth } from '../auth-context.ts';
+import { AppSidebar } from '@/components/AppSidebar.tsx';
+import { Separator } from '@/components/ui/separator';
+import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
+import { navTitle } from '@/nav.ts';
+import { Outlet, useLocation } from 'react-router';
 
 export function Layout() {
-    const { user, loading, logout } = useAuth();
-    const navigate = useNavigate();
-
-    async function onLogout() {
-        await logout();
-        await navigate('/');
-    }
+    const { pathname } = useLocation();
+    const title = navTitle(pathname);
 
     return (
-        <div className="app">
-            <header className="topbar">
-                <Link to="/" className="brand">
-                    simplemavenrepo
-                </Link>
-                <nav>
-                    <NavLink to="/" end>
-                        Browse
-                    </NavLink>
-                    {user?.isAdmin && (
-                        <>
-                            <NavLink to="/artifacts">Artifacts</NavLink>
-                            <NavLink to="/users">Users</NavLink>
-                            <NavLink to="/teams">Teams</NavLink>
-                        </>
-                    )}
-                    {user && <NavLink to="/tokens">Tokens</NavLink>}
-                </nav>
-                <div className="session">
-                    {user ? (
-                        <>
-                            <span>{user.username}</span>
-                            <button type="button" onClick={() => void onLogout()}>
-                                Log out
-                            </button>
-                        </>
-                    ) : (
-                        !loading && <Link to="/login">Log in</Link>
-                    )}
+        <SidebarProvider>
+            <AppSidebar />
+            <SidebarInset>
+                <header className="flex h-14 shrink-0 items-center gap-2 border-b px-4">
+                    <SidebarTrigger className="-ml-1" />
+                    <Separator orientation="vertical" className="mr-2 data-[orientation=vertical]:h-4" />
+                    {title && <span className="text-sm font-medium">{title}</span>}
+                </header>
+                <div className="flex flex-1 flex-col gap-4 p-6">
+                    <Outlet />
                 </div>
-            </header>
-            <main>
-                <Outlet />
-            </main>
-        </div>
+            </SidebarInset>
+        </SidebarProvider>
     );
 }

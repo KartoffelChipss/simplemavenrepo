@@ -1,8 +1,5 @@
+import { PageHeader } from '@/components/PageHeader.tsx';
+
 export function ArtifactsPage() {
-    return (
-        <>
-            <h1>Artifacts</h1>
-            <p>Register and manage artifacts.</p>
-        </>
-    );
+    return <PageHeader title="Artifacts" description="Register and manage artifacts." />;
 }
