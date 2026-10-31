@@ -13,7 +13,8 @@ docs:
     Management API of simplemavenrepo.
 
     1. Select the `Local` environment and set its secret `token` variable. On first start the server
-       logs a token for the `admin` user.
+       logs a password and a token for the `admin` user. `password` is used by the Auth requests and when
+       creating users.
     2. `username`, `team`, `tokenId` and `grantId` in the environment pick which entity a request targets.
        Create requests store the new id in `tokenId` / `grantId`, which the delete requests use.
   type: text/markdown

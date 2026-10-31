@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"log"
+	"net/url"
 	"simplemavenrepo/internal/repository"
 	"strings"
 
@@ -13,10 +14,12 @@ import (
 
 type userKey struct{}
 
+const SessionCookie = "smr_session"
+
 // Authenticate is a middleware that only lets authenticated requests through. See Identify.
-func Authenticate(tokens *repository.TokenRepository) fiber.Handler {
+func Authenticate(repos repository.Repositories) fiber.Handler {
 	return func(c fiber.Ctx) error {
-		if err := Identify(c, tokens); err != nil {
+		if err := Identify(c, repos); err != nil {
 			return err
 		}
 		return c.Next()
@@ -24,15 +27,23 @@ func Authenticate(tokens *repository.TokenRepository) fiber.Handler {
 }
 
 // Identify authenticates the request and stores the user for CurrentUser. It accepts a token either as
-// "Bearer <token>" or as the password of HTTP Basic auth, which is what Maven and Gradle send.
-func Identify(c fiber.Ctx, tokens *repository.TokenRepository) error {
-	username, token, ok := parseAuthorization(c.Get(fiber.HeaderAuthorization))
+// "Bearer <token>" or as the password of HTTP Basic auth, which is what Maven and Gradle send. Without an
+// Authorization header it falls back to the session cookie of the web UI.
+func Identify(c fiber.Ctx, repos repository.Repositories) error {
+	header := c.Get(fiber.HeaderAuthorization)
+	if header == "" {
+		if session := c.Cookies(SessionCookie); session != "" {
+			return identifySession(c, repos.Sessions, session)
+		}
+	}
+
+	username, token, ok := parseAuthorization(header)
 	if !ok {
 		c.Set(fiber.HeaderWWWAuthenticate, `Basic realm="simplemavenrepo"`)
 		return fiber.NewError(fiber.StatusUnauthorized, "authentication required")
 	}
 
-	user, err := tokens.Authenticate(c.Context(), token)
+	user, err := repos.Tokens.Authenticate(c.Context(), token)
 	if err == nil && username != "" && username != user.Username {
 		err = repository.ErrInvalidCredentials
 	}
@@ -47,6 +58,39 @@ func Identify(c fiber.Ctx, tokens *repository.TokenRepository) error {
 
 	fiber.Locals(c, userKey{}, user)
 	return nil
+}
+
+func identifySession(c fiber.Ctx, sessions *repository.SessionRepository, session string) error {
+	if !isSameOrigin(c) {
+		return fiber.NewError(fiber.StatusForbidden, "cross-origin request")
+	}
+
+	user, err := sessions.Authenticate(c.Context(), session)
+	if err != nil {
+		if !errors.Is(err, repository.ErrInvalidCredentials) {
+			log.Printf("Session authentication failed: %v", err)
+			return fiber.ErrInternalServerError
+		}
+		return fiber.NewError(fiber.StatusUnauthorized, "session expired")
+	}
+
+	fiber.Locals(c, userKey{}, user)
+	return nil
+}
+
+func isSameOrigin(c fiber.Ctx) bool {
+	switch c.Method() {
+	case fiber.MethodGet, fiber.MethodHead, fiber.MethodOptions:
+		return true
+	}
+	if site := c.Get("Sec-Fetch-Site"); site != "" {
+		return site == "same-origin" || site == "none"
+	}
+	if origin := c.Get(fiber.HeaderOrigin); origin != "" {
+		u, err := url.Parse(origin)
+		return err == nil && u.Host == c.Host()
+	}
+	return true
 }
 
 func RequireAdmin(c fiber.Ctx) error {

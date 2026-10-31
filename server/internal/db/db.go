@@ -68,6 +68,18 @@ var migrations = []string{
 		created_at  INTEGER NOT NULL
 	);
 	`,
+	`
+	ALTER TABLE users ADD COLUMN password_hash BLOB;
+
+	CREATE TABLE sessions (
+		id           INTEGER PRIMARY KEY,
+		user_id      INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+		session_hash BLOB    NOT NULL UNIQUE,
+		created_at   INTEGER NOT NULL,
+		expires_at   INTEGER NOT NULL
+	);
+	CREATE INDEX sessions_user ON sessions(user_id);
+	`,
 }
 
 // Open opens the SQLite database at path and migrates it to the latest schema.

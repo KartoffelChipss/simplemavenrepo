@@ -8,7 +8,8 @@ export function LoginPage() {
     const location = useLocation();
     const from = (location.state as { from?: string } | null)?.from ?? '/';
 
-    const [token, setToken] = useState('');
+    const [username, setUsername] = useState('');
+    const [password, setPassword] = useState('');
     const [error, setError] = useState<string | null>(null);
     const [submitting, setSubmitting] = useState(false);
 
@@ -19,7 +20,7 @@ export function LoginPage() {
         setSubmitting(true);
         setError(null);
         try {
-            await login(token.trim());
+            await login(username.trim(), password);
             await navigate(from, { replace: true });
         } catch (err) {
             setError(err instanceof Error ? err.message : String(err));
@@ -32,17 +33,27 @@ export function LoginPage() {
         <div className="login">
             <h1>simplemavenrepo</h1>
             <form onSubmit={(e) => void onSubmit(e)}>
-                <label htmlFor="token">Access token</label>
+                <label htmlFor="username">Username</label>
                 <input
-                    id="token"
+                    id="username"
+                    autoComplete="username"
+                    autoCapitalize="none"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    required
+                    autoFocus
+                />
+                <label htmlFor="password">Password</label>
+                <input
+                    id="password"
                     type="password"
                     autoComplete="current-password"
-                    value={token}
-                    onChange={(e) => setToken(e.target.value)}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
                     required
                 />
                 {error && <p className="error">{error}</p>}
-                <button type="submit" disabled={submitting || !token.trim()}>
+                <button type="submit" disabled={submitting || !username.trim() || !password}>
                     Log in
                 </button>
             </form>

@@ -101,20 +101,17 @@ func (r *TokenRepository) Authenticate(ctx context.Context, plaintext string) (U
 
 	now := time.Now()
 	var tokenID int64
-	var u User
-	var createdAt int64
-	err := r.db.QueryRowContext(ctx, `
-		SELECT t.id, u.id, u.username, u.is_admin, u.created_at FROM tokens t
+	u, err := scanUser(r.db.QueryRowContext(ctx, `
+		SELECT t.id, `+joinedUserColumns+` FROM tokens t
 		JOIN users u ON u.id = t.user_id
 		WHERE t.token_hash = ? AND (t.expires_at IS NULL OR t.expires_at > ?)`,
-		hashToken(plaintext), toUnix(now)).Scan(&tokenID, &u.ID, &u.Username, &u.IsAdmin, &createdAt)
+		hashToken(plaintext), toUnix(now)), &tokenID)
 	if err != nil {
-		if err = mapErr(err); err == ErrNotFound {
+		if err == ErrNotFound {
 			return User{}, ErrInvalidCredentials
 		}
 		return User{}, err
 	}
-	u.CreatedAt = fromUnix(createdAt)
 
 	_, err = r.db.ExecContext(ctx,
 		`UPDATE tokens SET last_used_at = ? WHERE id = ? AND (last_used_at IS NULL OR last_used_at <= ?)`,

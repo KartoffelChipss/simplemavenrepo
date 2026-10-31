@@ -19,6 +19,7 @@ type Repositories struct {
 	Users     *UserRepository
 	Teams     *TeamRepository
 	Tokens    *TokenRepository
+	Sessions  *SessionRepository
 	Grants    *GrantRepository
 	Artifacts *ArtifactRepository
 }
@@ -28,6 +29,7 @@ func New(db *sql.DB) Repositories {
 		Users:     &UserRepository{db: db},
 		Teams:     &TeamRepository{db: db},
 		Tokens:    &TokenRepository{db: db},
+		Sessions:  &SessionRepository{db: db},
 		Grants:    &GrantRepository{db: db},
 		Artifacts: &ArtifactRepository{db: db},
 	}

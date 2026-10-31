@@ -1,8 +1,14 @@
-import { Link, NavLink, Outlet } from 'react-router';
+import { Link, NavLink, Outlet, useNavigate } from 'react-router';
 import { useAuth } from '../auth-context.ts';
 
 export function Layout() {
-    const { user, logout } = useAuth();
+    const { user, loading, logout } = useAuth();
+    const navigate = useNavigate();
+
+    async function onLogout() {
+        await logout();
+        await navigate('/');
+    }
 
     return (
         <div className="app">
@@ -27,12 +33,12 @@ export function Layout() {
                     {user ? (
                         <>
                             <span>{user.username}</span>
-                            <button type="button" onClick={logout}>
+                            <button type="button" onClick={() => void onLogout()}>
                                 Log out
                             </button>
                         </>
                     ) : (
-                        <Link to="/login">Log in</Link>
+                        !loading && <Link to="/login">Log in</Link>
                     )}
                 </div>
             </header>

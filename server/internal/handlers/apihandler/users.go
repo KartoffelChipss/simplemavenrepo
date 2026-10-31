@@ -49,6 +49,7 @@ func (h *handler) createUser(c fiber.Ctx) error {
 	var req struct {
 		Username string `json:"username"`
 		IsAdmin  bool   `json:"isAdmin"`
+		Password string `json:"password"`
 	}
 	if err := bindJSON(c, &req); err != nil {
 		return err
@@ -56,17 +57,29 @@ func (h *handler) createUser(c fiber.Ctx) error {
 	if err := validateName("username", req.Username); err != nil {
 		return err
 	}
+	if req.Password != "" {
+		if err := repository.ValidatePassword(req.Password); err != nil {
+			return fiber.NewError(fiber.StatusBadRequest, err.Error())
+		}
+	}
 
 	u, err := h.repos.Users.Create(c.Context(), req.Username, req.IsAdmin)
 	if err != nil {
 		return repoError(err, "user")
+	}
+	if req.Password != "" {
+		if err := h.setPassword(c, u, req.Password); err != nil {
+			return err
+		}
+		u.HasPassword = true
 	}
 	return c.Status(fiber.StatusCreated).JSON(u)
 }
 
 func (h *handler) updateUser(c fiber.Ctx) error {
 	var req struct {
-		IsAdmin *bool `json:"isAdmin"`
+		IsAdmin  *bool   `json:"isAdmin"`
+		Password *string `json:"password"`
 	}
 	if err := bindJSON(c, &req); err != nil {
 		return err
@@ -75,6 +88,12 @@ func (h *handler) updateUser(c fiber.Ctx) error {
 	u, err := h.repos.Users.Get(c.Context(), c.Params("username"))
 	if err != nil {
 		return repoError(err, "user")
+	}
+	if req.Password != nil {
+		if err := h.setPassword(c, u, *req.Password); err != nil {
+			return err
+		}
+		u.HasPassword = *req.Password != ""
 	}
 	if req.IsAdmin == nil || *req.IsAdmin == u.IsAdmin {
 		return c.JSON(u)

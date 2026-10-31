@@ -28,7 +28,7 @@ func newReadGuard(repos repository.Repositories) fiber.Handler {
 			return c.Next()
 		}
 
-		if err := auth.Identify(c, repos.Tokens); err != nil {
+		if err := auth.Identify(c, repos); err != nil {
 			return err
 		}
 		allowed, err := auth.Authorize(c.Context(), repos.Grants, auth.CurrentUser(c), relPath, repository.PermissionRead)

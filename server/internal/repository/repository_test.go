@@ -164,3 +164,59 @@ func TestArtifacts(t *testing.T) {
 		t.Fatalf("FindByPath after delete: got %v, want ErrNotFound", err)
 	}
 }
+
+func TestPasswordsAndSessions(t *testing.T) {
+	ctx := context.Background()
+	r := newTestRepos(t)
+
+	alice, err := r.Users.Create(ctx, "alice", false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := r.Users.CheckPassword(ctx, "alice", ""); !errors.Is(err, ErrInvalidCredentials) {
+		t.Fatalf("user without password: got %v, want ErrInvalidCredentials", err)
+	}
+	if err := r.Users.SetPassword(ctx, alice.ID, "short"); !errors.Is(err, ErrInvalidPassword) {
+		t.Fatalf("short password: got %v, want ErrInvalidPassword", err)
+	}
+	if err := r.Users.SetPassword(ctx, alice.ID, "correct horse"); err != nil {
+		t.Fatal(err)
+	}
+	u, err := r.Users.CheckPassword(ctx, "alice", "correct horse")
+	if err != nil || !u.HasPassword || u.ID != alice.ID {
+		t.Fatalf("correct password: got %+v, %v", u, err)
+	}
+	if _, err := r.Users.CheckPassword(ctx, "alice", "wrong horse"); !errors.Is(err, ErrInvalidCredentials) {
+		t.Fatalf("wrong password: got %v, want ErrInvalidCredentials", err)
+	}
+	if _, err := r.Users.CheckPassword(ctx, "bob", "correct horse"); !errors.Is(err, ErrInvalidCredentials) {
+		t.Fatalf("unknown user: got %v, want ErrInvalidCredentials", err)
+	}
+
+	first, _, err := r.Sessions.Create(ctx, alice.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	second, _, err := r.Sessions.Create(ctx, alice.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if u, err := r.Sessions.Authenticate(ctx, first); err != nil || u.Username != "alice" {
+		t.Fatalf("session: got %+v, %v", u, err)
+	}
+	if err := r.Sessions.DeleteForUser(ctx, alice.ID, second); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := r.Sessions.Authenticate(ctx, first); !errors.Is(err, ErrInvalidCredentials) {
+		t.Fatalf("revoked session: got %v, want ErrInvalidCredentials", err)
+	}
+	if _, err := r.Sessions.Authenticate(ctx, second); err != nil {
+		t.Fatalf("kept session: %v", err)
+	}
+	if err := r.Sessions.Delete(ctx, second); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := r.Sessions.Authenticate(ctx, second); !errors.Is(err, ErrInvalidCredentials) {
+		t.Fatalf("logged out session: got %v, want ErrInvalidCredentials", err)
+	}
+}

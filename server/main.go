@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"io"
@@ -59,11 +61,18 @@ func bootstrapAdmin(repos repository.Repositories) error {
 	if err != nil {
 		return err
 	}
+	pw := make([]byte, 18)
+	rand.Read(pw)
+	password := base64.RawURLEncoding.EncodeToString(pw)
+	if err := repos.Users.SetPassword(ctx, admin.ID, password); err != nil {
+		return err
+	}
 	_, secret, err := repos.Tokens.Create(ctx, admin.ID, "bootstrap", nil)
 	if err != nil {
 		return err
 	}
-	log.Printf("Created initial admin user %q with token %s - store it now, it will not be shown again", admin.Username, secret)
+	log.Printf("Created initial admin user %q with password %s and token %s - store them now, they will not be shown again",
+		admin.Username, password, secret)
 	return nil
 }
 

@@ -4,8 +4,8 @@ import type { User } from './api.ts';
 export interface AuthState {
     user: User | null;
     loading: boolean;
-    login: (token: string) => Promise<void>;
-    logout: () => void;
+    login: (username: string, password: string) => Promise<void>;
+    logout: () => Promise<void>;
 }
 
 export const AuthContext = createContext<AuthState | null>(null);

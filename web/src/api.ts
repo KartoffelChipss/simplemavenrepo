@@ -1,22 +1,3 @@
-const TOKEN_KEY = 'smr.token';
-
-export function getToken(): string | null {
-    try {
-        return localStorage.getItem(TOKEN_KEY);
-    } catch {
-        return null;
-    }
-}
-
-export function setToken(token: string | null) {
-    try {
-        if (token) localStorage.setItem(TOKEN_KEY, token);
-        else localStorage.removeItem(TOKEN_KEY);
-    } catch {
-        // Storage unavailable, the token only lives for this page load.
-    }
-}
-
 export class ApiError extends Error {
     readonly status: number;
 
@@ -26,10 +7,9 @@ export class ApiError extends Error {
     }
 }
 
-/** Calls the management API, sending the stored token as a bearer token. */
-export async function api<T>(path: string, init: RequestInit = {}, token = getToken()): Promise<T> {
+/** Calls the management API. The browser sends the HttpOnly session cookie set by the login. */
+export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
     const headers = new Headers(init.headers);
-    if (token) headers.set('Authorization', `Bearer ${token}`);
     if (init.body && !headers.has('Content-Type')) headers.set('Content-Type', 'application/json');
 
     const res = await fetch(`/api${path}`, { ...init, headers });
@@ -45,5 +25,6 @@ export interface User {
     id: number;
     username: string;
     isAdmin: boolean;
+    hasPassword: boolean;
     createdAt: string;
 }

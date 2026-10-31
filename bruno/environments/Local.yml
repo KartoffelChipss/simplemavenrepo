@@ -24,3 +24,6 @@ variables:
   - secret: true
     name: token
     description: ""
+  - secret: true
+    name: password
+    description: ""

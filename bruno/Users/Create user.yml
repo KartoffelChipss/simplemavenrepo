@@ -11,7 +11,8 @@ http:
     data: |-
       {
         "username": "{{username}}",
-        "isAdmin": false
+        "isAdmin": false,
+        "password": "{{password}}"
       }
   auth: inherit
 
@@ -21,3 +22,5 @@ settings:
   followRedirects: true
   maxRedirects: 5
   forwardAuthorizationHeader: true
+
+docs: "`password` is optional. Without one the user can only authenticate with tokens, not log in to the web UI."

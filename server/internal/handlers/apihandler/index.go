@@ -28,6 +28,10 @@ func RegisterApiRoutes(app *fiber.App, repos repository.Repositories) {
 			code = fe.Code
 		}
 		msg := err.Error()
+		// The UI handles 401 itself, browsers must not show their own Basic auth prompt.
+		if code == fiber.StatusUnauthorized {
+			c.Response().Header.Del(fiber.HeaderWWWAuthenticate)
+		}
 		if code == fiber.StatusInternalServerError {
 			msg = "internal server error"
 		}
@@ -35,11 +39,14 @@ func RegisterApiRoutes(app *fiber.App, repos repository.Repositories) {
 	})
 
 	api.Get("/about", aboutHandler)
+	api.Post("/auth/login", loginLimiter, h.login)
+	api.Post("/auth/logout", h.logout)
 
-	authenticate := auth.Authenticate(repos.Tokens)
+	authenticate := auth.Authenticate(repos)
 
 	me := api.Group("/me", authenticate)
 	me.Get("", h.getMe)
+	me.Put("/password", h.changeMyPassword)
 	me.Get("/tokens", h.listMyTokens)
 	me.Post("/tokens", h.createMyToken)
 	me.Delete("/tokens/:id", h.deleteMyToken)
