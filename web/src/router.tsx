@@ -8,6 +8,7 @@ import { LoginPage } from './pages/LoginPage.tsx';
 import { NotFoundPage } from './pages/NotFoundPage.tsx';
 import { TeamsPage } from './pages/TeamsPage.tsx';
 import { TokensPage } from './pages/TokensPage.tsx';
+import { UserPage } from './pages/UserPage.tsx';
 import { UsersPage } from './pages/UsersPage.tsx';
 
 export const router = createBrowserRouter([
@@ -27,6 +28,7 @@ export const router = createBrowserRouter([
                         children: [
                             { path: 'artifacts', element: <ArtifactsPage /> },
                             { path: 'users', element: <UsersPage /> },
+                            { path: 'users/:username', element: <UserPage /> },
                             { path: 'teams', element: <TeamsPage /> },
                         ],
                     },

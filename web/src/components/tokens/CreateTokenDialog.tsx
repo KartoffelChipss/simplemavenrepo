@@ -1,4 +1,4 @@
-import { useCreateMyToken } from '@/api/tokens.ts';
+import { useCreateMyToken, useCreateUserToken } from '@/api/tokens.ts';
 import type { CreatedToken } from '@/api/types.ts';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -30,10 +30,12 @@ const expiryOptions = [
     { value: 'never', label: 'Never' },
 ];
 
-function CreateForm({ onCreated }: { onCreated: (token: CreatedToken) => void }) {
+function CreateForm({ username, onCreated }: { username?: string; onCreated: (token: CreatedToken) => void }) {
     const [name, setName] = useState('');
     const [expiry, setExpiry] = useState('90');
-    const create = useCreateMyToken();
+    const createMine = useCreateMyToken();
+    const createUsers = useCreateUserToken(username ?? '');
+    const create = username === undefined ? createMine : createUsers;
 
     function onSubmit(e: FormEvent) {
         e.preventDefault();
@@ -44,7 +46,7 @@ function CreateForm({ onCreated }: { onCreated: (token: CreatedToken) => void })
     return (
         <form onSubmit={onSubmit}>
             <DialogHeader>
-                <DialogTitle>Create token</DialogTitle>
+                <DialogTitle>{username === undefined ? 'Create token' : `Create token for ${username}`}</DialogTitle>
                 <DialogDescription>
                     Tokens authenticate Maven, Gradle and scripts. Use one as the password in your build tool's
                     credentials.
@@ -150,7 +152,7 @@ function CreatedTokenView({ token }: { token: CreatedToken }) {
     );
 }
 
-export function CreateTokenDialog() {
+export function CreateTokenDialog({ username }: { username?: string }) {
     const [open, setOpen] = useState(false);
     const [created, setCreated] = useState<CreatedToken | null>(null);
 
@@ -161,7 +163,11 @@ export function CreateTokenDialog() {
                 Create token
             </DialogTrigger>
             <DialogContent className="sm:max-w-md">
-                {created ? <CreatedTokenView token={created} /> : <CreateForm onCreated={setCreated} />}
+                {created ? (
+                    <CreatedTokenView token={created} />
+                ) : (
+                    <CreateForm username={username} onCreated={setCreated} />
+                )}
             </DialogContent>
         </Dialog>
     );
