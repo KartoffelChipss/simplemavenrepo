@@ -2,10 +2,14 @@ package config
 
 import (
 	"log"
+	"net"
 	"os"
 	"path/filepath"
 	"simplemavenrepo/internal/util"
+	"strings"
 	"time"
+
+	"github.com/gofiber/fiber/v3"
 )
 
 func getEnv(key, fallback string) string {
@@ -46,6 +50,34 @@ func GetShutdownTimeout() time.Duration {
 		return 10 * time.Second
 	}
 	return timeout
+}
+
+func GetTrustProxyConfig() (cfg fiber.TrustProxyConfig, ok bool) {
+	for _, entry := range strings.Split(getEnv("SMR_TRUSTED_PROXIES", ""), ",") {
+		entry = strings.TrimSpace(entry)
+		switch strings.ToLower(entry) {
+		case "":
+			continue
+		case "loopback":
+			cfg.Loopback = true
+		case "private":
+			cfg.Private = true
+		case "linklocal":
+			cfg.LinkLocal = true
+		default:
+			if _, _, err := net.ParseCIDR(entry); err != nil && net.ParseIP(entry) == nil {
+				log.Printf("Ignoring invalid trusted proxy %q, expected an IP, a CIDR range, loopback, private or linklocal", entry)
+				continue
+			}
+			cfg.Proxies = append(cfg.Proxies, entry)
+		}
+		ok = true
+	}
+	return cfg, ok
+}
+
+func GetProxyHeader() string {
+	return getEnv("SMR_PROXY_HEADER", fiber.HeaderXForwardedFor)
 }
 
 func GetBodyLimit() int {

@@ -53,10 +53,18 @@ func bootstrapAdmin(repos repository.Repositories) error {
 }
 
 func main() {
-	app := fiber.New(fiber.Config{
+	fiberConfig := fiber.Config{
 		BodyLimit:         config.GetBodyLimit(),
 		StreamRequestBody: true,
-	})
+	}
+	if trustProxyConfig, ok := config.GetTrustProxyConfig(); ok {
+		fiberConfig.TrustProxy = true
+		fiberConfig.TrustProxyConfig = trustProxyConfig
+		fiberConfig.ProxyHeader = config.GetProxyHeader()
+		fiberConfig.EnableIPValidation = true
+		log.Printf("Trusting proxies %s for the client IP in %s", os.Getenv("SMR_TRUSTED_PROXIES"), fiberConfig.ProxyHeader)
+	}
+	app := fiber.New(fiberConfig)
 
 	repoPath := config.GetRepoPath()
 	err := util.CheckDirAccess(repoPath)
