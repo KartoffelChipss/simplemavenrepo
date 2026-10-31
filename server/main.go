@@ -10,10 +10,13 @@ import (
 	"log"
 	"net"
 	"os"
+	"path/filepath"
 	"simplemavenrepo/internal/config"
 	"simplemavenrepo/internal/db"
 	"simplemavenrepo/internal/handlers/apihandler"
+	"simplemavenrepo/internal/handlers/javadochandler"
 	"simplemavenrepo/internal/handlers/ressourcehandler"
+	"simplemavenrepo/internal/javadoc"
 	"simplemavenrepo/internal/repository"
 	"simplemavenrepo/internal/webui"
 
@@ -113,7 +116,18 @@ func main() {
 		log.Fatalf("Creating initial admin failed: %v", err)
 	}
 
-	apihandler.RegisterApiRoutes(app, repos)
+	root, err := os.OpenRoot(repoPath)
+	if err != nil {
+		log.Fatalf("Cannot open repository path: %v", err)
+	}
+	key, err := javadoc.LoadOrCreateKey(filepath.Join(configPath, "javadoc.key"))
+	if err != nil {
+		log.Fatalf("Javadoc signing key error: %v", err)
+	}
+	signer := javadoc.NewSigner(key)
+
+	apihandler.RegisterApiRoutes(app, repos, root.FS(), signer)
+	javadochandler.RegisterJavadocRoutes(app, root.FS(), signer)
 	ressourcehandler.RegisterRessourceRoutes(app, repos)
 	webui.RegisterRoutes(app)
 

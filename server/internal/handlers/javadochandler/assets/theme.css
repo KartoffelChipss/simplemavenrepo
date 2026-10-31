@@ -1,0 +1,639 @@
+:root:root:root {
+    color-scheme: light;
+    --smr-background: oklch(0.9764 0.0013 286.3755);
+    --smr-foreground: oklch(0.2593 0.0259 248.858);
+    --smr-card: oklch(1 0 0);
+    --smr-primary: oklch(0.4721 0.0927 237.7893);
+    --smr-primary-foreground: oklch(1 0 0);
+    --smr-muted: oklch(0.948 0.0063 255.4758);
+    --smr-muted-foreground: oklch(0.5025 0.0261 254.5164);
+    --smr-accent: oklch(0.9175 0.0177 234.5132);
+    --smr-accent-foreground: oklch(0.3818 0.0757 237.4085);
+    --smr-destructive: oklch(0.5413 0.155 26.0539);
+    --smr-border: oklch(0.9046 0.0098 252.8166);
+    --smr-highlight: oklch(0.93 0.09 95);
+    --smr-code-keyword: oklch(0.5 0.15 300);
+    --smr-code-string: oklch(0.5 0.11 155);
+    --smr-code-number: oklch(0.55 0.12 60);
+    --smr-icon-filter: none;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root:root:root:not([data-smr-theme='light']) {
+        color-scheme: dark;
+        --smr-background: oklch(0.1884 0.0128 248.5103);
+        --smr-foreground: oklch(0.9324 0.008 253.8552);
+        --smr-card: oklch(0.2241 0.0181 255.71);
+        --smr-primary: oklch(0.7313 0.0733 235.1459);
+        --smr-primary-foreground: oklch(0.1884 0.0128 248.5103);
+        --smr-muted: oklch(0.2654 0.022 254.2034);
+        --smr-muted-foreground: oklch(0.6498 0.0271 257.6665);
+        --smr-accent: oklch(0.2654 0.022 254.2034);
+        --smr-accent-foreground: oklch(0.833 0.0499 230.3705);
+        --smr-destructive: oklch(0.6657 0.1387 24.1829);
+        --smr-border: oklch(0.31 0.025 255.71);
+        --smr-highlight: oklch(0.45 0.08 95);
+    --smr-code-keyword: oklch(0.78 0.11 300);
+    --smr-code-string: oklch(0.78 0.11 155);
+    --smr-code-number: oklch(0.8 0.11 70);
+        --smr-icon-filter: invert(1) brightness(1.5);
+    }
+}
+
+:root:root:root[data-smr-theme='dark'] {
+    color-scheme: dark;
+    --smr-background: oklch(0.1884 0.0128 248.5103);
+    --smr-foreground: oklch(0.9324 0.008 253.8552);
+    --smr-card: oklch(0.2241 0.0181 255.71);
+    --smr-primary: oklch(0.7313 0.0733 235.1459);
+    --smr-primary-foreground: oklch(0.1884 0.0128 248.5103);
+    --smr-muted: oklch(0.2654 0.022 254.2034);
+    --smr-muted-foreground: oklch(0.6498 0.0271 257.6665);
+    --smr-accent: oklch(0.2654 0.022 254.2034);
+    --smr-accent-foreground: oklch(0.833 0.0499 230.3705);
+    --smr-destructive: oklch(0.6657 0.1387 24.1829);
+    --smr-border: oklch(0.31 0.025 255.71);
+    --smr-highlight: oklch(0.45 0.08 95);
+    --smr-code-keyword: oklch(0.78 0.11 300);
+    --smr-code-string: oklch(0.78 0.11 155);
+    --smr-code-number: oklch(0.8 0.11 70);
+    --smr-icon-filter: invert(1) brightness(1.5);
+}
+
+:root:root:root {
+    --smr-font-sans: Geist, ui-sans-serif, system-ui, sans-serif;
+    --smr-font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+    --smr-radius: 0.625rem;
+
+    --body-font-family: var(--smr-font-sans);
+    --block-font-family: var(--smr-font-sans);
+    --code-font-family: var(--smr-font-mono);
+    --body-font-size: 14px;
+    --block-font-size: 14px;
+    --code-font-size: 13px;
+    --nav-font-size: 13px;
+    --body-text-color: var(--smr-foreground);
+    --block-text-color: var(--smr-foreground);
+    --body-background-color: var(--smr-background);
+    --section-background-color: var(--smr-background);
+    --detail-background-color: var(--smr-background);
+    --detail-block-color: var(--smr-muted);
+    --code-background-color: var(--smr-muted);
+    --mark-background-color: var(--smr-muted);
+    --navbar-background-color: var(--smr-card);
+    --navbar-text-color: var(--smr-foreground);
+    --subnav-background-color: var(--smr-muted);
+    --subnav-link-color: var(--smr-primary);
+    --member-heading-background-color: var(--smr-muted);
+    --selected-background-color: var(--smr-primary);
+    --selected-text-color: var(--smr-primary-foreground);
+    --selected-link-color: var(--smr-primary-foreground);
+    --table-header-color: var(--smr-muted);
+    --even-row-color: var(--smr-card);
+    --odd-row-color: var(--smr-card);
+    --title-color: var(--smr-foreground);
+    --link-color: var(--smr-primary);
+    --link-color-active: var(--smr-accent-foreground);
+    --toc-background-color: var(--smr-background);
+    --toc-highlight-color: var(--smr-accent);
+    --toc-hover-color: var(--smr-muted);
+    --snippet-background-color: var(--smr-muted);
+    --snippet-text-color: var(--smr-foreground);
+    --snippet-highlight-color: var(--smr-highlight);
+    --pre-background-color: var(--smr-muted);
+    --pre-text-color: var(--smr-foreground);
+    --border-color: var(--smr-border);
+    --table-border-color: var(--smr-border);
+    --button-border-color: var(--smr-border);
+    --search-input-background-color: var(--smr-card);
+    --search-input-text-color: var(--smr-foreground);
+    --search-input-placeholder-color: var(--smr-muted-foreground);
+    --search-tag-background-color: var(--smr-highlight);
+    --search-tag-highlight-color: var(--smr-highlight);
+    --invalid-tag-background-color: color-mix(in oklch, var(--smr-destructive) 15%, transparent);
+    --invalid-tag-text-color: var(--smr-foreground);
+    --icon-filter: var(--smr-icon-filter);
+    --copy-icon-brightness: 100%;
+    --top-nav-height: 0px;
+    --sub-nav-height: 0px;
+    --nav-height: 0px;
+}
+
+/* Javadoc's navigation, search and theme switcher. The UI has its own. */
+header.flex-header,
+header[role='banner'] > nav,
+.fixedNav,
+.navPadding,
+.topNav,
+.subNav,
+.bottomNav,
+.top-nav,
+.sub-nav,
+.bottom-nav,
+footer > nav,
+.skip-nav,
+.skipNav,
+#theme-panel {
+    display: none !important;
+}
+
+/* Elements, for javadoc without custom properties */
+
+html,
+body {
+    background: var(--smr-background) !important;
+    color: var(--smr-foreground) !important;
+    font-family: var(--smr-font-sans) !important;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+/* Below JDK 20, the content scrolls inside .flex-content. Letting the page scroll keeps anchors simple. */
+.flex-box {
+    position: static !important;
+    height: auto !important;
+}
+.flex-content {
+    overflow: visible !important;
+    height: auto !important;
+}
+
+main,
+.contentContainer,
+.header,
+.content-container {
+    padding-left: 24px !important;
+    padding-right: 24px !important;
+}
+main .header,
+main .contentContainer,
+main .content-container {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+}
+main {
+    padding-top: 8px;
+    padding-bottom: 24px;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+.title,
+.header h1.title,
+.header h2.title {
+    color: var(--smr-foreground) !important;
+    font-family: var(--smr-font-sans) !important;
+    font-style: normal !important;
+    letter-spacing: -0.01em;
+}
+
+/* Javadoc's own text font is a serif in a lighter color */
+div.block,
+.block,
+.col-last,
+.colLast,
+dl.notes dd {
+    font-family: var(--smr-font-sans) !important;
+    font-size: 14px !important;
+    color: var(--smr-foreground) !important;
+}
+h1.title,
+.title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin: 16px 0 8px;
+}
+.sub-title,
+.subTitle {
+    color: var(--smr-muted-foreground) !important;
+    margin: 4px 0;
+}
+
+a,
+a:link,
+a:visited,
+a code,
+a:link code,
+a:visited code {
+    color: var(--smr-primary) !important;
+    background: transparent !important;
+    text-decoration: none;
+}
+a[href]:hover,
+a[href]:hover code {
+    color: var(--smr-primary) !important;
+    background: transparent !important;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+code,
+pre,
+tt,
+kbd,
+samp {
+    font-family: var(--smr-font-mono) !important;
+    font-size: 13px;
+    /* Not important, so links and highlighted code keep their colors */
+    color: inherit;
+}
+:not(pre) > code {
+    overflow-wrap: anywhere;
+}
+pre,
+.snippet {
+    background: var(--smr-muted) !important;
+    color: var(--smr-foreground) !important;
+    border: 1px solid var(--smr-border) !important;
+    border-radius: calc(var(--smr-radius) - 2px);
+    padding: 10px 12px !important;
+    line-height: 1.6 !important;
+    overflow-x: auto;
+}
+.snippet pre,
+.snippet > code > pre,
+pre code,
+pre .hljs {
+    border: 0 !important;
+    padding: 0 !important;
+    background: transparent !important;
+}
+
+/* Snippets with a copy button, since JDK 18: the container is the box */
+.snippet-container {
+    position: relative;
+    margin: 10px 0 14px !important;
+    padding: 0 !important;
+    background: var(--smr-muted) !important;
+    border: 1px solid var(--smr-border);
+    border-radius: calc(var(--smr-radius) - 2px);
+}
+.snippet-container > pre.snippet {
+    margin: 0 !important;
+    border: 0 !important;
+    background: transparent !important;
+}
+.snippet-container > button.copy {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    background: transparent !important;
+    border: 0 !important;
+}
+
+/* highlight.js, which some projects add to their javadoc */
+.hljs,
+.hljs-subst {
+    color: var(--smr-foreground) !important;
+}
+.hljs-keyword,
+.hljs-built_in,
+.hljs-literal,
+.hljs-meta,
+.hljs-annotation {
+    color: var(--smr-code-keyword) !important;
+}
+.hljs-string,
+.hljs-char {
+    color: var(--smr-code-string) !important;
+}
+.hljs-number {
+    color: var(--smr-code-number) !important;
+}
+.hljs-title,
+.hljs-class,
+.hljs-type {
+    color: var(--smr-primary) !important;
+}
+.hljs-comment,
+.hljs-javadoc,
+.hljs-doctag {
+    color: var(--smr-muted-foreground) !important;
+    font-style: italic;
+}
+.member-signature,
+.memberSignature,
+div.block > pre,
+section.detail > pre {
+    background: var(--smr-muted) !important;
+    border: 1px solid var(--smr-border);
+    border-radius: calc(var(--smr-radius) - 2px);
+    padding: 8px 12px !important;
+    font-family: var(--smr-font-mono) !important;
+    font-size: 13px !important;
+    color: var(--smr-foreground) !important;
+}
+
+hr {
+    border: 0;
+    border-top: 1px solid var(--smr-border);
+}
+
+/* Summary tables. Javadoc draws them as tables before JDK 16 and as grids of divs afterwards. */
+
+table,
+.summary-table {
+    border-color: var(--smr-border) !important;
+}
+.summary-table,
+table.overviewSummary,
+table.memberSummary,
+table.typeSummary,
+table.useSummary,
+table.constantsSummary,
+table.deprecatedSummary,
+table.packagesSummary,
+table.summary-table {
+    background: var(--smr-card) !important;
+    border: 1px solid var(--smr-border) !important;
+    border-radius: calc(var(--smr-radius) - 2px);
+    border-collapse: separate !important;
+    border-spacing: 0;
+    overflow: hidden;
+}
+.summary-table > div,
+table.overviewSummary td,
+table.overviewSummary th,
+table.memberSummary td,
+table.memberSummary th,
+table.typeSummary td,
+table.typeSummary th,
+table.useSummary td,
+table.useSummary th,
+table.constantsSummary td,
+table.constantsSummary th,
+table.deprecatedSummary td,
+table.deprecatedSummary th,
+table.packagesSummary td,
+table.packagesSummary th,
+.altColor,
+.rowColor,
+.alt-color,
+.row-color,
+.even-row-color,
+.odd-row-color {
+    background: var(--smr-card) !important;
+    color: var(--smr-foreground) !important;
+    border-color: var(--smr-border) !important;
+}
+.summary-table > div {
+    border-top: 1px solid var(--smr-border);
+}
+.summary-table > .table-header,
+table th,
+.summary-table > div.table-header {
+    background: var(--smr-muted) !important;
+    color: var(--smr-muted-foreground) !important;
+    font-weight: 500;
+    border-top: 0;
+}
+
+/* Table captions and the tabs that filter tables by kind of member */
+caption,
+.caption,
+.table-tabs,
+.memberSummary caption span.activeTableTab,
+.memberSummary caption span.tableTab {
+    background: transparent !important;
+    color: var(--smr-foreground) !important;
+    padding: 0 !important;
+    margin-bottom: 6px;
+    text-align: left;
+    font-weight: 600;
+}
+caption span,
+caption a,
+.caption span,
+.caption a {
+    background: transparent !important;
+    color: var(--smr-foreground) !important;
+    background-image: none !important;
+    height: auto !important;
+    padding: 0 !important;
+    white-space: normal !important;
+}
+caption span.tabEnd,
+caption span.activeTableTab span.tabEnd,
+caption span.tableTab span.tabEnd {
+    display: none !important;
+}
+.table-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+.table-tabs > button,
+caption span.tableTab,
+caption span.activeTableTab {
+    background: var(--smr-muted) !important;
+    color: var(--smr-muted-foreground) !important;
+    border: 1px solid var(--smr-border) !important;
+    border-radius: calc(var(--smr-radius) - 4px) !important;
+    padding: 3px 10px !important;
+    margin: 0 4px 6px 0 !important;
+    font: 500 13px var(--smr-font-sans) !important;
+    cursor: pointer;
+}
+.table-tabs > button.active-table-tab,
+caption span.activeTableTab {
+    background: var(--smr-primary) !important;
+    border-color: var(--smr-primary) !important;
+}
+.table-tabs > button.active-table-tab,
+caption span.activeTableTab,
+caption span.activeTableTab a,
+caption span.activeTableTab span {
+    color: var(--smr-primary-foreground) !important;
+}
+caption span.tableTab a,
+caption span.tableTab span {
+    color: var(--smr-muted-foreground) !important;
+}
+
+/* Javadoc boxes each summary and details section, the UI separates them by their headings */
+.summary section[class$='-summary'],
+.details section[class$='-details'],
+.class-uses .detail,
+.serialized-class-details,
+.inherited-list,
+section[class$='-details'] .detail,
+.contentContainer > .summary > ul.blockList > li.blockList,
+.contentContainer > .details > ul.blockList > li.blockList {
+    background: transparent !important;
+    border: 0 !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    margin-left: 0 !important;
+}
+
+/* Below 800px wide, javadoc moves descriptions into a row of their own */
+@media screen and (max-width: 800px) {
+    .three-column-summary > .table-header.col-last {
+        display: none;
+    }
+    .three-column-summary > .col-last {
+        border-top: 0 !important;
+        padding-top: 0 !important;
+        color: var(--smr-muted-foreground) !important;
+    }
+}
+
+/* Legacy tables center their cells and draw every border */
+table.overviewSummary th,
+table.overviewSummary td,
+table.memberSummary th,
+table.memberSummary td,
+table.typeSummary th,
+table.typeSummary td,
+table.useSummary th,
+table.useSummary td,
+table.constantsSummary th,
+table.constantsSummary td,
+table.deprecatedSummary th,
+table.deprecatedSummary td,
+table.packagesSummary th,
+table.packagesSummary td {
+    text-align: left !important;
+    border: 0 !important;
+    border-top: 1px solid var(--smr-border) !important;
+    padding: 8px !important;
+    vertical-align: top;
+}
+
+/* Member details */
+
+section.detail,
+.details section,
+ul.blockList li.blockList,
+ul.blockListLast li.blockList,
+.details ul.blockList ul.blockList ul.blockList li.blockList,
+.details ul.blockList ul.blockList ul.blockListLast li.blockList {
+    background: transparent !important;
+    border: 0 !important;
+}
+.details h3,
+.member-list > li > section > h3,
+.details ul.blockList ul.blockList ul.blockList li.blockList h4,
+.details ul.blockList ul.blockList ul.blockListLast li.blockList h4,
+ul.blockList ul.blockList li.blockList h3,
+.contentContainer .details h3,
+.summary h2,
+.details h2,
+.summary-list h2,
+.details-list h2,
+.inherited-list h3,
+div.summary ul.blockList ul.blockList li.blockList h3 {
+    background: transparent !important;
+    color: var(--smr-foreground) !important;
+    border: 0 !important;
+    padding: 0 !important;
+}
+.details-list > li > section > h2,
+.summary-list > li > section > h2,
+.summary h2,
+.details h2 {
+    font-size: 1.15rem !important;
+    margin: 28px 0 10px !important;
+    padding-bottom: 6px !important;
+    border-bottom: 1px solid var(--smr-border) !important;
+}
+.member-list > li > section > h3,
+.details ul.blockList ul.blockList ul.blockList li.blockList h4,
+.details ul.blockList ul.blockList ul.blockListLast li.blockList h4 {
+    font-family: var(--smr-font-mono) !important;
+    font-size: 14px !important;
+    margin: 20px 0 8px !important;
+}
+.member-list > li + li,
+.details ul.blockList ul.blockList ul.blockList li.blockList + li {
+    border-top: 1px dashed var(--smr-border) !important;
+}
+.inherited-list,
+.inheritedList {
+    background: transparent !important;
+    color: var(--smr-muted-foreground) !important;
+}
+
+dl.notes dt,
+.notes dt,
+dl dt span,
+.paramLabel,
+.returnLabel,
+.throwsLabel,
+.seeLabel,
+.simpleTagLabel,
+.overrideSpecifyLabel,
+.implementationLabel {
+    color: var(--smr-muted-foreground) !important;
+    font-family: var(--smr-font-sans) !important;
+    font-weight: 600;
+}
+
+.deprecation-block,
+.deprecationBlock,
+.preview-block,
+.previewBlock {
+    background: var(--smr-muted) !important;
+    border: 1px solid var(--smr-border) !important;
+    border-left: 3px solid var(--smr-destructive) !important;
+    border-radius: calc(var(--smr-radius) - 4px);
+    padding: 6px 10px !important;
+}
+.deprecated-label,
+.deprecatedLabel,
+.descfrmTypeLabel {
+    color: var(--smr-destructive) !important;
+    font-weight: 600;
+}
+
+.type-name-label,
+.typeNameLabel,
+.member-name-link,
+.memberNameLink {
+    font-weight: 600;
+}
+
+/* Table of contents of JDK 23 and later */
+nav.toc {
+    background: var(--smr-background) !important;
+    border-right: 1px solid var(--smr-border) !important;
+    top: 0 !important;
+    height: 100vh !important;
+    max-height: 100vh !important;
+}
+nav.toc a {
+    color: var(--smr-muted-foreground) !important;
+}
+nav.toc .current-selection > a,
+nav.toc a.current-selection {
+    color: var(--smr-foreground) !important;
+    background: var(--smr-accent) !important;
+    border-radius: calc(var(--smr-radius) - 4px);
+}
+input,
+.filter-input {
+    background: var(--smr-card) !important;
+    color: var(--smr-foreground) !important;
+    border: 1px solid var(--smr-border) !important;
+    border-radius: calc(var(--smr-radius) - 4px);
+}
+
+.legalCopy,
+.legal-copy,
+footer {
+    color: var(--smr-muted-foreground) !important;
+    font-size: 12px;
+}
+
+img[src$='.svg'],
+.copy img {
+    filter: var(--smr-icon-filter);
+}
+
+::selection {
+    background: var(--smr-accent);
+}

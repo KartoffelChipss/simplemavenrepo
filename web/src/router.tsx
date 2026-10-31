@@ -4,6 +4,8 @@ import { RequireAdmin, RequireAuth } from './components/RequireAuth.tsx';
 import { ArtifactsPage } from './pages/ArtifactsPage.tsx';
 import { BrowsePage } from './pages/BrowsePage.tsx';
 import { ErrorPage } from './pages/ErrorPage.tsx';
+import { JavadocIndexPage } from './pages/JavadocIndexPage.tsx';
+import { JavadocPage } from './pages/JavadocPage.tsx';
 import { LoginPage } from './pages/LoginPage.tsx';
 import { NotFoundPage } from './pages/NotFoundPage.tsx';
 import { TeamPage } from './pages/TeamPage.tsx';
@@ -20,6 +22,8 @@ export const router = createBrowserRouter([
         children: [
             { index: true, element: <Navigate to="/browse" replace /> },
             { path: 'browse/*', element: <BrowsePage /> },
+            { path: 'docs', element: <JavadocIndexPage /> },
+            { path: 'docs/*', element: <JavadocPage /> },
             {
                 element: <RequireAuth />,
                 children: [

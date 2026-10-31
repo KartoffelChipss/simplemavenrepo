@@ -3,6 +3,7 @@ repo/
 *.db
 *.db-shm
 *.db-wal
+javadoc.key
 node_modules/
 server/internal/webui/dist/*
 !server/internal/webui/dist/.gitkeep

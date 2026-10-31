@@ -2,10 +2,12 @@ import type { Artifact } from '@/api/types.ts';
 import { CopyButton } from '@/components/CopyButton.tsx';
 import { Badge } from '@/components/ui/badge';
 import { CodeBlock, CodeBlockActions, CodeBlockContent, CodeBlockLine } from '@/components/ui/code-block';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useHighlightedCode } from '@/hooks/use-highlighted-code';
-import { Globe, Lock } from 'lucide-react';
+import { BookOpen, Globe, Lock } from 'lucide-react';
+import { Link } from 'react-router';
 
 function snippets(artifact: Artifact, version: string, repositoryUrl: string) {
     const { groupId, artifactId } = artifact;
@@ -71,7 +73,15 @@ function Snippet({ code, language, label }: { code: string; language: string; la
     );
 }
 
-export function ArtifactInfo({ artifact, version }: { artifact: Artifact; version?: string }) {
+export function ArtifactInfo({
+    artifact,
+    version,
+    javadocUrl,
+}: {
+    artifact: Artifact;
+    version?: string;
+    javadocUrl?: string;
+}) {
     const repositoryUrl = `${window.location.origin}/releases`;
 
     return (
@@ -96,6 +106,14 @@ export function ArtifactInfo({ artifact, version }: { artifact: Artifact; versio
                     )}
                 </CardTitle>
                 {artifact.description && <CardDescription>{artifact.description}</CardDescription>}
+                {javadocUrl && (
+                    <CardAction>
+                        <Button variant="outline" size="sm" render={<Link to={javadocUrl} />}>
+                            <BookOpen />
+                            Javadoc
+                        </Button>
+                    </CardAction>
+                )}
             </CardHeader>
             <CardContent>
                 {version ? (

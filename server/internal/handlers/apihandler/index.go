@@ -3,26 +3,21 @@ package apihandler
 import (
 	"errors"
 	"io/fs"
-	"log"
-	"os"
 	"simplemavenrepo/internal/auth"
-	"simplemavenrepo/internal/config"
+	"simplemavenrepo/internal/javadoc"
 	"simplemavenrepo/internal/repository"
 
 	"github.com/gofiber/fiber/v3"
 )
 
 type handler struct {
-	repos repository.Repositories
+	repos  repository.Repositories
 	repoFS fs.FS
+	signer *javadoc.Signer
 }
 
-func RegisterApiRoutes(app *fiber.App, repos repository.Repositories) {
-	root, err := os.OpenRoot(config.GetRepoPath())
-	if err != nil {
-		log.Fatalf("Cannot open repository path: %v", err)
-	}
-	h := &handler{repos: repos, repoFS: root.FS()}
+func RegisterApiRoutes(app *fiber.App, repos repository.Repositories, repoFS fs.FS, signer *javadoc.Signer) {
+	h := &handler{repos: repos, repoFS: repoFS, signer: signer}
 	api := app.Group("/api")
 
 	api.Use(func(c fiber.Ctx) error {
@@ -52,6 +47,8 @@ func RegisterApiRoutes(app *fiber.App, repos repository.Repositories) {
 	api.Post("/auth/logout", h.logout)
 	api.Get("/browse", h.browseRepository)
 	api.Get("/browse/*", h.browseRepository)
+	api.Get("/javadoc", h.listJavadoc)
+	api.Get("/javadoc/*", h.getJavadoc)
 
 	authenticate := auth.Authenticate(repos)
 

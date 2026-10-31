@@ -37,3 +37,9 @@ export const browseKeys = {
     all: ['browse'] as const,
     path: (path: string) => [...browseKeys.all, path] as const,
 };
+
+export const javadocKeys = {
+    all: ['javadoc'] as const,
+    list: () => [...javadocKeys.all, 'list'] as const,
+    path: (path: string) => [...javadocKeys.all, path] as const,
+};

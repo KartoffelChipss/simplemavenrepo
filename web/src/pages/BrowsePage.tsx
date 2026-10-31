@@ -1,6 +1,7 @@
 import { useMe } from '@/api/auth.ts';
 import { repositoryFileUrl, useBrowse } from '@/api/browse.ts';
 import { isApiError } from '@/api/client.ts';
+import { javadocPageUrl } from '@/api/javadoc.ts';
 import type { BrowseEntry, BrowseListing } from '@/api/types.ts';
 import { ArtifactInfo } from '@/components/browse/ArtifactInfo.tsx';
 import { PageHeader } from '@/components/PageHeader.tsx';
@@ -19,10 +20,12 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { formatBytes, formatDateTime } from '@/lib/format.ts';
 import { cn } from '@/lib/utils';
-import { Download, File, Folder, FolderSearch, Lock, Package } from 'lucide-react';
+import { BookOpen, Download, File, Folder, FolderSearch, Lock, Package } from 'lucide-react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router';
 
 const SIDECAR_EXTENSIONS = ['md5', 'sha1', 'sha256', 'sha512', 'asc'];
+
+const isJavadocJar = (entry: BrowseEntry) => entry.type === 'file' && entry.name.endsWith('-javadoc.jar');
 
 const join = (...parts: string[]) => parts.filter(Boolean).join('/');
 const browseUrl = (path: string) => `/browse/${path.split('/').filter(Boolean).map(encodeURIComponent).join('/')}`;
@@ -136,6 +139,15 @@ function EntryTable({ listing }: { listing: BrowseListing }) {
                                                 <Download className="size-3.5 text-muted-foreground" />
                                             </a>
                                         )}
+                                        {isJavadocJar(entry) && (
+                                            <Link
+                                                to={javadocPageUrl(listing.path)}
+                                                className="flex items-center gap-1 rounded border px-1 text-[0.7rem] text-muted-foreground hover:text-foreground"
+                                            >
+                                                <BookOpen className="size-3" />
+                                                View
+                                            </Link>
+                                        )}
                                         {entry.artifact && !entry.artifact.public && (
                                             <Badge variant="outline">
                                                 <Lock />
@@ -184,6 +196,12 @@ function artifactVersion(listing: BrowseListing): string | undefined {
     const rest = listing.path.slice(artifact.path.length).split('/').filter(Boolean);
     if (rest.length > 0) return rest[0];
     return listing.entries.find((e) => e.type === 'directory')?.name;
+}
+
+function javadocUrl(listing: BrowseListing): string | undefined {
+    const artifact = listing.artifact;
+    if (!artifact || listing.path.split('/').length !== artifact.path.split('/').length + 1) return;
+    return listing.entries.some(isJavadocJar) ? javadocPageUrl(listing.path) : undefined;
 }
 
 function NotFound({ path }: { path: string }) {
@@ -242,7 +260,11 @@ export function BrowsePage() {
             {listing && !error && (
                 <div className={cn('flex flex-col gap-4 transition-opacity', isPlaceholderData && 'opacity-60')}>
                     {listing.artifact && (
-                        <ArtifactInfo artifact={listing.artifact} version={artifactVersion(listing)} />
+                        <ArtifactInfo
+                            artifact={listing.artifact}
+                            version={artifactVersion(listing)}
+                            javadocUrl={javadocUrl(listing)}
+                        />
                     )}
                     <EntryTable listing={listing} />
                 </div>

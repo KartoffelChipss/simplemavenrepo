@@ -137,3 +137,48 @@ export interface BrowseListing {
     artifact?: Artifact;
     entries: BrowseEntry[];
 }
+
+export interface JavadocPackage {
+    name: string;
+    /** Path of the page in the javadoc jar. */
+    url: string;
+}
+
+export interface JavadocType {
+    package: string;
+    /** Simple name, nested types are qualified by their enclosing type, e.g. Map.Entry. */
+    name: string;
+    url: string;
+}
+
+export interface JavadocMember {
+    package: string;
+    type: string;
+    /** Signature as javadoc shows it, e.g. get(int). */
+    name: string;
+    /** Page and anchor in the javadoc jar. */
+    url: string;
+}
+
+/** An artifact that has javadoc. */
+export interface JavadocArtifact {
+    artifact: Artifact;
+    /** Versions with javadoc, newest first. Never empty. */
+    versions: string[];
+}
+
+/** The contents of the javadoc jar of an artifact version. */
+export interface Javadoc {
+    artifact: Artifact;
+    version: string;
+    /** Versions of the artifact that have javadoc, newest first. */
+    versions: string[];
+    /** Where the files of the jar are served, ends with a slash. Contains a token that expires after a day or two. */
+    baseUrl: string;
+    startPage: string;
+    /** Pages about the whole documentation, like the overview, tree and index. */
+    pages: { title: string; url: string }[];
+    packages: JavadocPackage[];
+    types: JavadocType[];
+    members: JavadocMember[];
+}

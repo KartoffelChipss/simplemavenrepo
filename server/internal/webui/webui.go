@@ -36,7 +36,7 @@ func RegisterRoutes(app *fiber.App) {
 	}
 	isBackendPath := func(c fiber.Ctx) bool {
 		p := c.Path()
-		return strings.HasPrefix(p, "/api/") || strings.HasPrefix(p, "/releases/")
+		return strings.HasPrefix(p, "/api/") || strings.HasPrefix(p, "/releases/") || strings.HasPrefix(p, "/javadoc/")
 	}
 
 	app.Get("/assets/*", static.New("", static.Config{

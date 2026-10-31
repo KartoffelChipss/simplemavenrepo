@@ -21,6 +21,7 @@ export default defineConfig({
         proxy: {
             '/api': backend,
             '/releases': backend,
+            '/javadoc': backend,
         },
     },
 });
