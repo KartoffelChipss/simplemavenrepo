@@ -113,5 +113,5 @@ export interface CreateArtifactRequest {
 
 export interface UpdateArtifactRequest {
     public?: boolean;
-    description?: string | null;
+    description?: string;
 }
