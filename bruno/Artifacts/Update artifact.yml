@@ -11,6 +11,7 @@ http:
     data: |-
       {
         "public": true,
+        "allowReleaseOverwrite": false,
         "description": "Demo library"
       }
   auth: inherit

@@ -47,10 +47,11 @@ func (h *handler) getArtifact(c fiber.Ctx) error {
 
 func (h *handler) createArtifact(c fiber.Ctx) error {
 	var req struct {
-		GroupID     string  `json:"groupId"`
-		ArtifactID  string  `json:"artifactId"`
-		Public      bool    `json:"public"`
-		Description *string `json:"description"`
+		GroupID               string  `json:"groupId"`
+		ArtifactID            string  `json:"artifactId"`
+		Public                bool    `json:"public"`
+		AllowReleaseOverwrite bool    `json:"allowReleaseOverwrite"`
+		Description           *string `json:"description"`
 	}
 	if err := bindJSON(c, &req); err != nil {
 		return err
@@ -65,7 +66,7 @@ func (h *handler) createArtifact(c fiber.Ctx) error {
 		return err
 	}
 
-	a, err := h.repos.Artifacts.Create(c.Context(), req.GroupID, req.ArtifactID, req.Public, req.Description)
+	a, err := h.repos.Artifacts.Create(c.Context(), req.GroupID, req.ArtifactID, req.Public, req.AllowReleaseOverwrite, req.Description)
 	if err != nil {
 		return repoError(err, "artifact")
 	}
@@ -74,8 +75,9 @@ func (h *handler) createArtifact(c fiber.Ctx) error {
 
 func (h *handler) updateArtifact(c fiber.Ctx) error {
 	var req struct {
-		Public      *bool   `json:"public"`
-		Description *string `json:"description"`
+		Public                *bool   `json:"public"`
+		AllowReleaseOverwrite *bool   `json:"allowReleaseOverwrite"`
+		Description           *string `json:"description"`
 	}
 	if err := bindJSON(c, &req); err != nil {
 		return err
@@ -88,7 +90,7 @@ func (h *handler) updateArtifact(c fiber.Ctx) error {
 	if err != nil {
 		return err
 	}
-	a, err = h.repos.Artifacts.Update(c.Context(), a.ID, req.Public, req.Description)
+	a, err = h.repos.Artifacts.Update(c.Context(), a.ID, req.Public, req.AllowReleaseOverwrite, req.Description)
 	if err != nil {
 		return repoError(err, "artifact")
 	}

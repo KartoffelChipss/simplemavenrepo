@@ -80,6 +80,9 @@ var migrations = []string{
 	);
 	CREATE INDEX sessions_user ON sessions(user_id);
 	`,
+	`
+	ALTER TABLE artifacts ADD COLUMN allow_release_overwrite INTEGER NOT NULL DEFAULT 0;
+	`,
 }
 
 // Open opens the SQLite database at path and migrates it to the latest schema.

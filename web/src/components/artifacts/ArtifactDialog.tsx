@@ -26,6 +26,7 @@ function ArtifactForm({ artifact, onDone }: { artifact?: Artifact; onDone: () =>
     const [artifactId, setArtifactId] = useState(artifact?.artifactId ?? '');
     const [description, setDescription] = useState(artifact?.description ?? '');
     const [isPublic, setIsPublic] = useState(artifact?.public ?? false);
+    const [allowReleaseOverwrite, setAllowReleaseOverwrite] = useState(artifact?.allowReleaseOverwrite ?? false);
 
     const create = useCreateArtifact();
     const update = useUpdateArtifact();
@@ -51,6 +52,7 @@ function ArtifactForm({ artifact, onDone }: { artifact?: Artifact; onDone: () =>
                     groupId: artifact.groupId,
                     artifactId: artifact.artifactId,
                     public: isPublic,
+                    allowReleaseOverwrite,
                     description: description.trim(),
                 },
                 options
@@ -61,6 +63,7 @@ function ArtifactForm({ artifact, onDone }: { artifact?: Artifact; onDone: () =>
                     groupId: groupId.trim(),
                     artifactId: artifactId.trim(),
                     public: isPublic,
+                    allowReleaseOverwrite,
                     description: description.trim() || null,
                 },
                 options
@@ -133,6 +136,19 @@ function ArtifactForm({ artifact, onDone }: { artifact?: Artifact; onDone: () =>
                         </FieldDescription>
                     </FieldContent>
                     <Switch id="artifact-public" checked={isPublic} onCheckedChange={setIsPublic} />
+                </Field>
+                <Field orientation="horizontal">
+                    <FieldContent>
+                        <FieldLabel htmlFor="artifact-overwrite">Allow overwriting releases</FieldLabel>
+                        <FieldDescription>
+                            Published release versions can be deployed again. Snapshots can always be replaced.
+                        </FieldDescription>
+                    </FieldContent>
+                    <Switch
+                        id="artifact-overwrite"
+                        checked={allowReleaseOverwrite}
+                        onCheckedChange={setAllowReleaseOverwrite}
+                    />
                 </Field>
                 {mutation.error && <FieldError>{mutation.error.message}</FieldError>}
             </FieldGroup>

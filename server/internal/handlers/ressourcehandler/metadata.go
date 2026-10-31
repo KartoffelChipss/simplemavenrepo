@@ -51,7 +51,7 @@ func writeMetadata(root *os.Root, dir string, m maven.Metadata) error {
 	if err != nil {
 		return err
 	}
-	return writeFileAtomicWithHashes(root, path.Join(dir, maven.MetadataFileName), bytes.NewReader(data))
+	return writeFileAtomicWithHashes(root, path.Join(dir, maven.MetadataFileName), bytes.NewReader(data), true)
 }
 
 // listVersions returns the subdirectories of artifactDir that contain at least one stored artifact file.

@@ -111,21 +111,21 @@ func TestArtifacts(t *testing.T) {
 	r := newTestRepos(t)
 
 	desc := "Demo library"
-	demo, err := r.Artifacts.Create(ctx, "com.example", "demo", true, &desc)
+	demo, err := r.Artifacts.Create(ctx, "com.example", "demo", true, false, &desc)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if demo.Path != "com/example/demo" || !demo.Public || demo.Description == nil || *demo.Description != desc {
 		t.Fatalf("unexpected artifact: %+v", demo)
 	}
-	if _, err := r.Artifacts.Create(ctx, "com.example", "demo", false, nil); !errors.Is(err, ErrConflict) {
+	if _, err := r.Artifacts.Create(ctx, "com.example", "demo", false, false, nil); !errors.Is(err, ErrConflict) {
 		t.Fatalf("duplicate artifact: got %v, want ErrConflict", err)
 	}
 	// Different coordinates that map to the same directory
-	if _, err := r.Artifacts.Create(ctx, "com", "example/demo", false, nil); !errors.Is(err, ErrConflict) {
+	if _, err := r.Artifacts.Create(ctx, "com", "example/demo", false, false, nil); !errors.Is(err, ErrConflict) {
 		t.Fatalf("artifact with the same path: got %v, want ErrConflict", err)
 	}
-	nested, err := r.Artifacts.Create(ctx, "com.example.demo", "sub", false, nil)
+	nested, err := r.Artifacts.Create(ctx, "com.example.demo", "sub", false, false, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -151,14 +151,22 @@ func TestArtifacts(t *testing.T) {
 	}
 
 	private := false
-	updated, err := r.Artifacts.Update(ctx, demo.ID, &private, nil)
+	updated, err := r.Artifacts.Update(ctx, demo.ID, &private, nil, nil)
 	if err != nil || updated.Public || updated.Description == nil {
 		t.Fatalf("Update visibility = %+v, %v", updated, err)
 	}
 	empty := ""
-	updated, err = r.Artifacts.Update(ctx, demo.ID, nil, &empty)
+	updated, err = r.Artifacts.Update(ctx, demo.ID, nil, nil, &empty)
 	if err != nil || updated.Public || updated.Description != nil {
 		t.Fatalf("Update clear description = %+v, %v", updated, err)
+	}
+	if updated.AllowReleaseOverwrite {
+		t.Fatalf("releases must be immutable by default: %+v", updated)
+	}
+	allow := true
+	updated, err = r.Artifacts.Update(ctx, demo.ID, nil, &allow, nil)
+	if err != nil || !updated.AllowReleaseOverwrite || updated.Public {
+		t.Fatalf("Update release overwrite = %+v, %v", updated, err)
 	}
 
 	if err := r.Artifacts.Delete(ctx, demo.ID); err != nil {

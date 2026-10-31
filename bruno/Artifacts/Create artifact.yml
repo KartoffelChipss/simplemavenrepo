@@ -13,6 +13,7 @@ http:
         "groupId": "{{groupId}}",
         "artifactId": "{{artifactId}}",
         "public": false,
+        "allowReleaseOverwrite": false,
         "description": "Demo library"
       }
   auth: inherit
@@ -24,4 +25,4 @@ settings:
   maxRedirects: 5
   forwardAuthorizationHeader: true
 
-docs: Only registered artifacts can be downloaded or uploaded to. Public artifacts can be downloaded without a token.
+docs: Only registered artifacts can be downloaded or uploaded to. Public artifacts can be downloaded without a token. Published release files can only be replaced if `allowReleaseOverwrite` is set, snapshots always can.

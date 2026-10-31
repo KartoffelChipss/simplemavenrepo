@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"hash"
 	"io"
+	"io/fs"
 	"log"
 	"math/rand/v2"
 	"os"
@@ -43,7 +44,8 @@ func newUploadHandler(root *os.Root, repos repository.Repositories) fiber.Handle
 		}
 
 		// Checked after authorization so only users with write access learn which artifacts are registered
-		if _, err := repos.Artifacts.FindByPath(c.Context(), relPath); err != nil {
+		artifact, err := repos.Artifacts.FindByPath(c.Context(), relPath)
+		if err != nil {
 			if errors.Is(err, repository.ErrNotFound) {
 				return fiber.NewError(fiber.StatusNotFound, "no registered artifact contains "+relPath)
 			}
@@ -58,6 +60,16 @@ func newUploadHandler(root *os.Root, repos repository.Repositories) fiber.Handle
 			return fiber.NewError(fiber.StatusUnsupportedMediaType, "only .jar and .pom files can be uploaded")
 		}
 
+		replace := artifact.AllowReleaseOverwrite || isSnapshotPath(relPath)
+		if !replace {
+			if _, err := root.Stat(relPath); err == nil {
+				return errReleaseExists(relPath)
+			} else if !errors.Is(err, fs.ErrNotExist) {
+				log.Printf("Checking for existing %s failed: %v", relPath, err)
+				return fiber.ErrInternalServerError
+			}
+		}
+
 		var body io.Reader
 		if c.Request().IsBodyStream() {
 			body = c.Request().BodyStream()
@@ -65,7 +77,10 @@ func newUploadHandler(root *os.Root, repos repository.Repositories) fiber.Handle
 			body = bytes.NewReader(c.Body())
 		}
 
-		if err := writeFileAtomicWithHashes(root, relPath, body); err != nil {
+		if err := writeFileAtomicWithHashes(root, relPath, body, replace); err != nil {
+			if errors.Is(err, fs.ErrExist) {
+				return errReleaseExists(relPath)
+			}
 			log.Printf("Upload of %s failed: %v", relPath, err)
 			return fiber.NewError(fiber.StatusInternalServerError, "failed to store file")
 		}
@@ -75,6 +90,15 @@ func newUploadHandler(root *os.Root, repos repository.Repositories) fiber.Handle
 		}
 		return c.SendStatus(fiber.StatusCreated)
 	}
+}
+
+func errReleaseExists(relPath string) error {
+	return fiber.NewError(fiber.StatusConflict, relPath+" is already published and releases can't be overwritten")
+}
+
+// isSnapshotPath reports whether p is a file of a SNAPSHOT version, e.g. com/example/demo/1.0-SNAPSHOT/demo-1.0-20260101.120000-1.jar
+func isSnapshotPath(p string) bool {
+	return strings.HasSuffix(path.Base(path.Dir(p)), "-SNAPSHOT")
 }
 
 // validateUploadPath checks that p looks like <group path>/<artifactId>/<version>/<file> and returns it cleaned
@@ -128,7 +152,9 @@ func hasStoredExtension(p string) bool {
 	return false
 }
 
-func writeFileAtomicWithHashes(root *os.Root, relPath string, body io.Reader) error {
+// writeFileAtomicWithHashes stores body at relPath along with its checksum files. Unless replace is set, it fails with
+// fs.ErrExist if relPath already exists.
+func writeFileAtomicWithHashes(root *os.Root, relPath string, body io.Reader, replace bool) error {
 	hashes := map[string]hash.Hash{
 		"md5":    md5.New(),
 		"sha1":   sha1.New(),
@@ -140,20 +166,22 @@ func writeFileAtomicWithHashes(root *os.Root, relPath string, body io.Reader) er
 	for _, h := range hashes {
 		hashWriters = append(hashWriters, h)
 	}
-	if err := writeFileAtomic(root, relPath, body, hashWriters...); err != nil {
+	if err := writeFileAtomic(root, relPath, body, replace, hashWriters...); err != nil {
 		return err
 	}
 
 	for ext, h := range hashes {
 		sum := hex.EncodeToString(h.Sum(nil))
-		if err := writeFileAtomic(root, relPath+"."+ext, strings.NewReader(sum)); err != nil {
+		if err := writeFileAtomic(root, relPath+"."+ext, strings.NewReader(sum), true); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func writeFileAtomic(root *os.Root, relPath string, body io.Reader, extra ...io.Writer) error {
+// writeFileAtomic writes body to a temporary file and moves it to relPath. Without replace, it links the file instead,
+// which fails with fs.ErrExist if relPath already exists.
+func writeFileAtomic(root *os.Root, relPath string, body io.Reader, replace bool, extra ...io.Writer) error {
 	dir := path.Dir(relPath)
 	if err := root.MkdirAll(dir, 0o755); err != nil {
 		return err
@@ -171,9 +199,14 @@ func writeFileAtomic(root *os.Root, relPath string, body io.Reader, extra ...io.
 		err = closeErr
 	}
 	if err == nil {
-		err = root.Rename(tmpPath, relPath)
+		if replace {
+			err = root.Rename(tmpPath, relPath)
+		} else {
+			// Unlike Rename, Link fails if relPath already exists
+			err = root.Link(tmpPath, relPath)
+		}
 	}
-	if err != nil {
+	if err != nil || !replace {
 		_ = root.Remove(tmpPath)
 	}
 	return err

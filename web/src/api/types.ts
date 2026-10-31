@@ -59,6 +59,7 @@ export interface Artifact {
     artifactId: string;
     path: string;
     public: boolean;
+    allowReleaseOverwrite: boolean;
     description: string | null;
     createdAt: string;
 }
@@ -108,11 +109,13 @@ export interface CreateArtifactRequest {
     groupId: string;
     artifactId: string;
     public?: boolean;
+    allowReleaseOverwrite?: boolean;
     description?: string | null;
 }
 
 export interface UpdateArtifactRequest {
     public?: boolean;
+    allowReleaseOverwrite?: boolean;
     description?: string;
 }
 

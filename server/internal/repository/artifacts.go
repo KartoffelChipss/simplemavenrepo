@@ -8,26 +8,27 @@ import (
 )
 
 type Artifact struct {
-	ID          int64     `json:"id"`
-	GroupID     string    `json:"groupId"`
-	ArtifactID  string    `json:"artifactId"`
-	Path        string    `json:"path"`
-	Public      bool      `json:"public"`
-	Description *string   `json:"description"`
-	CreatedAt   time.Time `json:"createdAt"`
+	ID         int64  `json:"id"`
+	GroupID    string `json:"groupId"`
+	ArtifactID string `json:"artifactId"`
+	Path       string `json:"path"`
+	Public     bool   `json:"public"`
+	AllowReleaseOverwrite bool      `json:"allowReleaseOverwrite"`
+	Description           *string   `json:"description"`
+	CreatedAt             time.Time `json:"createdAt"`
 }
 
 type ArtifactRepository struct {
 	db *sql.DB
 }
 
-const artifactColumns = `id, group_id, artifact_id, path, is_public, description, created_at`
+const artifactColumns = `id, group_id, artifact_id, path, is_public, allow_release_overwrite, description, created_at`
 
 func scanArtifact(s scanner) (Artifact, error) {
 	var a Artifact
 	var description sql.NullString
 	var createdAt int64
-	if err := s.Scan(&a.ID, &a.GroupID, &a.ArtifactID, &a.Path, &a.Public, &description, &createdAt); err != nil {
+	if err := s.Scan(&a.ID, &a.GroupID, &a.ArtifactID, &a.Path, &a.Public, &a.AllowReleaseOverwrite, &description, &createdAt); err != nil {
 		return Artifact{}, mapErr(err)
 	}
 	if description.Valid {
@@ -45,11 +46,11 @@ func toNullString(s *string) sql.NullString {
 	return sql.NullString{String: *s, Valid: true}
 }
 
-func (r *ArtifactRepository) Create(ctx context.Context, groupID, artifactID string, public bool, description *string) (Artifact, error) {
+func (r *ArtifactRepository) Create(ctx context.Context, groupID, artifactID string, public, allowReleaseOverwrite bool, description *string) (Artifact, error) {
 	return scanArtifact(r.db.QueryRowContext(ctx, `
-		INSERT INTO artifacts (group_id, artifact_id, is_public, description, created_at)
-		VALUES (?, ?, ?, ?, ?) RETURNING `+artifactColumns,
-		groupID, artifactID, public, toNullString(description), toUnix(time.Now())))
+		INSERT INTO artifacts (group_id, artifact_id, is_public, allow_release_overwrite, description, created_at)
+		VALUES (?, ?, ?, ?, ?, ?) RETURNING `+artifactColumns,
+		groupID, artifactID, public, allowReleaseOverwrite, toNullString(description), toUnix(time.Now())))
 }
 
 func (r *ArtifactRepository) Get(ctx context.Context, groupID, artifactID string) (Artifact, error) {
@@ -75,14 +76,16 @@ func (r *ArtifactRepository) List(ctx context.Context) ([]Artifact, error) {
 	return artifacts, rows.Err()
 }
 
-// Update changes the visibility and description. nil leaves a field unchanged, an empty description clears it.
-func (r *ArtifactRepository) Update(ctx context.Context, id int64, public *bool, description *string) (Artifact, error) {
+// Update changes the visibility, the release overwrite setting and the description. nil leaves a field unchanged,
+// an empty description clears it.
+func (r *ArtifactRepository) Update(ctx context.Context, id int64, public, allowReleaseOverwrite *bool, description *string) (Artifact, error) {
 	return scanArtifact(r.db.QueryRowContext(ctx, `
 		UPDATE artifacts SET
 			is_public = COALESCE(?, is_public),
+			allow_release_overwrite = COALESCE(?, allow_release_overwrite),
 			description = CASE WHEN ? THEN ? ELSE description END
 		WHERE id = ? RETURNING `+artifactColumns,
-		public, description != nil, toNullString(description), id))
+		public, allowReleaseOverwrite, description != nil, toNullString(description), id))
 }
 
 // Delete unregisters the artifact. Its files stay on disk but can no longer be downloaded.
