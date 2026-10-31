@@ -240,6 +240,27 @@ func writeFileAtomicWithHashes(root *os.Root, relPath string, body io.Reader, re
 	return nil
 }
 
+func RemoveStaleUploads(root *os.Root) error {
+	removed := 0
+	err := fs.WalkDir(root.FS(), ".", func(p string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		name := d.Name()
+		if d.Type().IsRegular() && strings.HasPrefix(name, ".") && strings.HasSuffix(name, ".upload") {
+			if err := root.Remove(p); err != nil {
+				return err
+			}
+			removed++
+		}
+		return nil
+	})
+	if removed > 0 {
+		log.Printf("Removed %d unfinished upload(s)", removed)
+	}
+	return err
+}
+
 // writeFileAtomic writes body to a temporary file and moves it to relPath. Without replace, it links the file instead,
 // which fails with fs.ErrExist if relPath already exists.
 func writeFileAtomic(root *os.Root, relPath string, body io.Reader, replace bool, extra ...io.Writer) error {

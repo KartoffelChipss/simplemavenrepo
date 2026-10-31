@@ -7,6 +7,7 @@ import (
 	"log"
 	"net"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"simplemavenrepo/internal/config"
 	"simplemavenrepo/internal/db"
@@ -18,6 +19,7 @@ import (
 	"simplemavenrepo/internal/repository"
 	"simplemavenrepo/internal/util"
 	"simplemavenrepo/internal/webui"
+	"syscall"
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/middleware/logger"
@@ -86,6 +88,9 @@ func main() {
 	if err != nil {
 		log.Fatalf("Cannot open repository path: %v", err)
 	}
+	if err := ressourcehandler.RemoveStaleUploads(root); err != nil {
+		log.Fatalf("Removing unfinished uploads failed: %v", err)
+	}
 	key, err := javadoc.LoadOrCreateKey(filepath.Join(configPath, "javadoc.key"))
 	if err != nil {
 		log.Fatalf("Javadoc signing key error: %v", err)
@@ -105,7 +110,29 @@ func main() {
 	ressourcehandler.RegisterRessourceRoutes(app, repos)
 	webui.RegisterRoutes(app)
 
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+	context.AfterFunc(ctx, func() {
+		stop()
+		log.Println("Shutting down, waiting for in-flight requests to finish")
+	})
+	app.Hooks().OnPostShutdown(func(err error) error {
+		if err != nil {
+			log.Printf("Shutdown did not finish cleanly: %v", err)
+		}
+		return nil
+	})
+
 	addr := net.JoinHostPort(config.GetHost(), config.GetPort())
 	log.Println("Server starting on " + addr)
-	log.Fatal(app.Listen(addr, fiber.ListenConfig{DisableStartupMessage: true}))
+	err = app.Listen(addr, fiber.ListenConfig{
+		DisableStartupMessage: true,
+		GracefulContext:       ctx,
+		ShutdownTimeout:       config.GetShutdownTimeout(),
+	})
+	if err != nil {
+		log.Printf("Server error: %v", err)
+		return
+	}
+	log.Println("Server stopped")
 }

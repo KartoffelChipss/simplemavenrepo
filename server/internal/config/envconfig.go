@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"simplemavenrepo/internal/util"
+	"time"
 )
 
 func getEnv(key, fallback string) string {
@@ -36,6 +37,15 @@ func GetDBPath() string {
 
 func GetConfigPath() string {
 	return getEnv("SMR_CONFIG_PATH", "./config")
+}
+
+func GetShutdownTimeout() time.Duration {
+	timeout, err := time.ParseDuration(getEnv("SMR_SHUTDOWN_TIMEOUT", "10s"))
+	if err != nil || timeout <= 0 {
+		log.Printf("Error parsing shutdown timeout. Falling back to default 10s. Error: %v", err)
+		return 10 * time.Second
+	}
+	return timeout
 }
 
 func GetBodyLimit() int {

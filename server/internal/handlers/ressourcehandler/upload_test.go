@@ -63,3 +63,32 @@ func assertContent(t *testing.T, root *os.Root, p, want string) {
 		t.Errorf("%s = %q, want %q", p, got, want)
 	}
 }
+
+func TestRemoveStaleUploads(t *testing.T) {
+	root, err := os.OpenRoot(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer root.Close()
+
+	const (
+		kept  = "com/example/demo/1.0/demo-1.0.jar"
+		stale = "com/example/demo/1.0/.demo-1.0.jar.123.upload"
+	)
+	if err := root.MkdirAll("com/example/demo/1.0", 0o755); err != nil {
+		t.Fatal(err)
+	}
+	for _, p := range []string{kept, stale} {
+		if err := root.WriteFile(p, []byte("data"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	if err := RemoveStaleUploads(root); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := root.Stat(stale); !errors.Is(err, fs.ErrNotExist) {
+		t.Errorf("stale upload still exists: %v", err)
+	}
+	assertContent(t, root, kept, "data")
+}
