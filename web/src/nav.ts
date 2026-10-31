@@ -1,4 +1,4 @@
-import type { User } from '@/api.ts';
+import type { User } from '@/api/types.ts';
 import { Boxes, FolderTree, KeyRound, UserGroup, UserRound, type LucideIcon } from 'lucide-react';
 import { matchPath } from 'react-router';
 

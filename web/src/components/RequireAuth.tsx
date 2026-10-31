@@ -1,17 +1,17 @@
 import { Navigate, Outlet, useLocation } from 'react-router';
-import { useAuth } from '../auth-context.ts';
+import { useMe } from '@/api/auth.ts';
 
 export function RequireAuth() {
-    const { user, loading } = useAuth();
+    const { data: user, isPending } = useMe();
     const location = useLocation();
 
-    if (loading) return null;
+    if (isPending) return null;
     if (!user) return <Navigate to="/login" replace state={{ from: location.pathname }} />;
     return <Outlet />;
 }
 
 export function RequireAdmin() {
-    const { user } = useAuth();
+    const { data: user } = useMe();
 
     if (!user?.isAdmin) return <p className="text-muted-foreground">You need admin access to view this page.</p>;
     return <Outlet />;

@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react';
-import { Navigate, useLocation, useNavigate } from 'react-router';
-import { useAuth } from '@/auth-context.ts';
+import { Navigate, useLocation } from 'react-router';
+import { useLogin, useMe } from '@/api/auth.ts';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Field, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field';
@@ -9,30 +9,20 @@ import { Spinner } from '@/components/ui/spinner';
 import { Package } from 'lucide-react';
 
 export function LoginPage() {
-    const { user, login } = useAuth();
-    const navigate = useNavigate();
+    const { data: user } = useMe();
+    const login = useLogin();
     const location = useLocation();
     const from = (location.state as { from?: string } | null)?.from ?? '/';
 
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
-    const [error, setError] = useState<string | null>(null);
-    const [submitting, setSubmitting] = useState(false);
 
     if (user) return <Navigate to={from} replace />;
 
-    async function onSubmit(e: FormEvent) {
+    function onSubmit(e: FormEvent) {
         e.preventDefault();
-        setSubmitting(true);
-        setError(null);
-        try {
-            await login(username.trim(), password);
-            await navigate(from, { replace: true });
-        } catch (err) {
-            setError(err instanceof Error ? err.message : String(err));
-        } finally {
-            setSubmitting(false);
-        }
+        // Once logged in, the user is set and the redirect above takes over.
+        login.mutate({ username: username.trim(), password });
     }
 
     return (
@@ -50,7 +40,7 @@ export function LoginPage() {
                         <CardDescription>Use your username and password to manage the repository.</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <form onSubmit={(e) => void onSubmit(e)}>
+                        <form onSubmit={onSubmit}>
                             <FieldGroup>
                                 <Field>
                                     <FieldLabel htmlFor="username">Username</FieldLabel>
@@ -75,9 +65,9 @@ export function LoginPage() {
                                         required
                                     />
                                 </Field>
-                                {error && <FieldError>{error}</FieldError>}
-                                <Button type="submit" disabled={submitting || !username.trim() || !password}>
-                                    {submitting && <Spinner />}
+                                {login.error && <FieldError>{login.error.message}</FieldError>}
+                                <Button type="submit" disabled={login.isPending || !username.trim() || !password}>
+                                    {login.isPending && <Spinner />}
                                     Log in
                                 </Button>
                             </FieldGroup>

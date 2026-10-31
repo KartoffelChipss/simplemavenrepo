@@ -1,4 +1,4 @@
-import { useAuth } from '@/auth-context.ts';
+import { useLogout, useMe } from '@/api/auth.ts';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
     DropdownMenu,
@@ -80,11 +80,12 @@ function ThemeSubmenu() {
 }
 
 function UserMenu() {
-    const { user, loading, logout } = useAuth();
+    const { data: user, isPending } = useMe();
+    const logout = useLogout();
     const { isMobile } = useSidebar();
     const navigate = useNavigate();
 
-    if (loading) return null;
+    if (isPending) return null;
     if (!user) {
         return (
             <SidebarMenu>
@@ -98,9 +99,8 @@ function UserMenu() {
         );
     }
 
-    async function onLogout() {
-        await logout();
-        await navigate('/');
+    function onLogout() {
+        logout.mutate(undefined, { onSuccess: () => void navigate('/') });
     }
 
     const avatar = (
@@ -140,7 +140,7 @@ function UserMenu() {
                         <DropdownMenuSeparator />
                         <ThemeSubmenu />
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => void onLogout()}>
+                        <DropdownMenuItem onClick={onLogout}>
                             <LogOut />
                             Log out
                         </DropdownMenuItem>
@@ -152,7 +152,7 @@ function UserMenu() {
 }
 
 export function AppSidebar() {
-    const { user } = useAuth();
+    const { data: user = null } = useMe();
     const groups = navGroups.filter((g) => g.visible(user));
 
     return (
