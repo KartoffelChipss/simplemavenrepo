@@ -1,6 +1,7 @@
 import { useLogout, useMe } from '@/api/auth.ts';
 import { useServerName } from '@/api/settings.ts';
 import { UserAvatar } from '@/components/UserAvatar.tsx';
+import { ChangeMyPasswordDialog } from '@/components/users/ChangeMyPasswordDialog.tsx';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -30,7 +31,8 @@ import {
 } from '@/components/ui/sidebar';
 import { navGroups, type NavItem } from '@/nav.ts';
 import { setTheme, useTheme, type Theme } from '@/theme.ts';
-import { ChevronsUpDown, LogIn, LogOut, Monitor, Moon, Package, Sun, SunMoon } from 'lucide-react';
+import { ChevronsUpDown, KeyRound, LogIn, LogOut, Monitor, Moon, Package, Sun, SunMoon } from 'lucide-react';
+import { useState } from 'react';
 import { Link, useMatch, useNavigate } from 'react-router';
 
 function NavMenuItem({ item }: { item: NavItem }) {
@@ -85,6 +87,7 @@ function UserMenu() {
     const logout = useLogout();
     const { isMobile } = useSidebar();
     const navigate = useNavigate();
+    const [passwordOpen, setPasswordOpen] = useState(false);
 
     if (isPending) return null;
     if (!user) {
@@ -136,6 +139,10 @@ function UserMenu() {
                         </DropdownMenuGroup>
                         <DropdownMenuSeparator />
                         <ThemeSubmenu />
+                        <DropdownMenuItem onClick={() => setPasswordOpen(true)}>
+                            <KeyRound />
+                            Change password
+                        </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem onClick={onLogout}>
                             <LogOut />
@@ -143,6 +150,7 @@ function UserMenu() {
                         </DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>
+                <ChangeMyPasswordDialog user={user} open={passwordOpen} onOpenChange={setPasswordOpen} />
             </SidebarMenuItem>
         </SidebarMenu>
     );
