@@ -1,5 +1,4 @@
-import { useCreateArtifact, useUpdateArtifact } from '@/api/artifacts.ts';
-import type { Artifact } from '@/api/types.ts';
+import { useCreateArtifact } from '@/api/artifacts.ts';
 import { artifactIdError, groupIdError, MAX_DESCRIPTION_LENGTH } from '@/components/artifacts/validation.ts';
 import { Button } from '@/components/ui/button';
 import {
@@ -20,65 +19,46 @@ import { Textarea } from '@/components/ui/textarea';
 import { toast } from '@/components/ui/toast';
 import { useState, type FormEvent, type ReactElement } from 'react';
 
-function ArtifactForm({ artifact, onDone }: { artifact?: Artifact; onDone: () => void }) {
-    const editing = artifact !== undefined;
-    const [groupId, setGroupId] = useState(artifact?.groupId ?? '');
-    const [artifactId, setArtifactId] = useState(artifact?.artifactId ?? '');
-    const [description, setDescription] = useState(artifact?.description ?? '');
-    const [isPublic, setIsPublic] = useState(artifact?.public ?? false);
-    const [allowReleaseOverwrite, setAllowReleaseOverwrite] = useState(artifact?.allowReleaseOverwrite ?? false);
+function ArtifactForm({ onDone }: { onDone: () => void }) {
+    const [groupId, setGroupId] = useState('');
+    const [artifactId, setArtifactId] = useState('');
+    const [description, setDescription] = useState('');
+    const [isPublic, setIsPublic] = useState(false);
+    const [allowReleaseOverwrite, setAllowReleaseOverwrite] = useState(false);
 
     const create = useCreateArtifact();
-    const update = useUpdateArtifact();
-    const mutation = editing ? update : create;
 
-    const groupIdInvalid = editing ? undefined : groupIdError(groupId.trim());
-    const artifactIdInvalid = editing ? undefined : artifactIdError(artifactId.trim());
-    const canSubmit =
-        !mutation.isPending && groupId.trim() && artifactId.trim() && !groupIdInvalid && !artifactIdInvalid;
+    const groupIdInvalid = groupIdError(groupId.trim());
+    const artifactIdInvalid = artifactIdError(artifactId.trim());
+    const canSubmit = !create.isPending && groupId.trim() && artifactId.trim() && !groupIdInvalid && !artifactIdInvalid;
 
     function onSubmit(e: FormEvent) {
         e.preventDefault();
         const coordinates = `${groupId.trim()}:${artifactId.trim()}`;
-        const options = {
-            onSuccess: () => {
-                toast.add({ title: editing ? 'Artifact updated' : 'Artifact registered', description: coordinates });
-                onDone();
+        create.mutate(
+            {
+                groupId: groupId.trim(),
+                artifactId: artifactId.trim(),
+                public: isPublic,
+                allowReleaseOverwrite,
+                description: description.trim() || null,
             },
-        };
-        if (editing) {
-            update.mutate(
-                {
-                    groupId: artifact.groupId,
-                    artifactId: artifact.artifactId,
-                    public: isPublic,
-                    allowReleaseOverwrite,
-                    description: description.trim(),
+            {
+                onSuccess: () => {
+                    toast.add({ title: 'Artifact registered', description: coordinates });
+                    onDone();
                 },
-                options
-            );
-        } else {
-            create.mutate(
-                {
-                    groupId: groupId.trim(),
-                    artifactId: artifactId.trim(),
-                    public: isPublic,
-                    allowReleaseOverwrite,
-                    description: description.trim() || null,
-                },
-                options
-            );
-        }
+            }
+        );
     }
 
     return (
         <form onSubmit={onSubmit}>
             <DialogHeader>
-                <DialogTitle>{editing ? 'Edit artifact' : 'Register artifact'}</DialogTitle>
+                <DialogTitle>Register artifact</DialogTitle>
                 <DialogDescription>
-                    {editing
-                        ? 'The coordinates of a registered artifact can’t be changed.'
-                        : 'Only registered artifacts can be published and downloaded. Users still need a write grant to publish.'}
+                    Only registered artifacts can be published and downloaded. Users still need a write grant to
+                    publish.
                 </DialogDescription>
             </DialogHeader>
             <FieldGroup className="py-4">
@@ -92,10 +72,9 @@ function ArtifactForm({ artifact, onDone }: { artifact?: Artifact; onDone: () =>
                         spellCheck={false}
                         value={groupId}
                         onChange={(e) => setGroupId(e.target.value)}
-                        disabled={editing}
                         aria-invalid={!!groupIdInvalid}
                         required
-                        autoFocus={!editing}
+                        autoFocus
                     />
                     {groupIdInvalid && <FieldError>{groupIdInvalid}</FieldError>}
                 </Field>
@@ -109,7 +88,6 @@ function ArtifactForm({ artifact, onDone }: { artifact?: Artifact; onDone: () =>
                         spellCheck={false}
                         value={artifactId}
                         onChange={(e) => setArtifactId(e.target.value)}
-                        disabled={editing}
                         aria-invalid={!!artifactIdInvalid}
                         required
                     />
@@ -123,7 +101,6 @@ function ArtifactForm({ artifact, onDone }: { artifact?: Artifact; onDone: () =>
                         maxLength={MAX_DESCRIPTION_LENGTH}
                         value={description}
                         onChange={(e) => setDescription(e.target.value)}
-                        autoFocus={editing}
                     />
                 </Field>
                 <Field orientation="horizontal">
@@ -150,27 +127,27 @@ function ArtifactForm({ artifact, onDone }: { artifact?: Artifact; onDone: () =>
                         onCheckedChange={setAllowReleaseOverwrite}
                     />
                 </Field>
-                {mutation.error && <FieldError>{mutation.error.message}</FieldError>}
+                {create.error && <FieldError>{create.error.message}</FieldError>}
             </FieldGroup>
             <DialogFooter>
                 <DialogClose render={<Button variant="outline" />}>Cancel</DialogClose>
                 <Button type="submit" disabled={!canSubmit}>
-                    {mutation.isPending && <Spinner />}
-                    {editing ? 'Save' : 'Register'}
+                    {create.isPending && <Spinner />}
+                    Register
                 </Button>
             </DialogFooter>
         </form>
     );
 }
 
-export function ArtifactDialog({ artifact, trigger }: { artifact?: Artifact; trigger: ReactElement }) {
+export function ArtifactDialog({ trigger }: { trigger: ReactElement }) {
     const [open, setOpen] = useState(false);
 
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger render={trigger} />
             <DialogContent className="sm:max-w-md">
-                <ArtifactForm artifact={artifact} onDone={() => setOpen(false)} />
+                <ArtifactForm onDone={() => setOpen(false)} />
             </DialogContent>
         </Dialog>
     );

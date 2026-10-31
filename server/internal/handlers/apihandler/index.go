@@ -49,6 +49,7 @@ func RegisterApiRoutes(app *fiber.App, repos repository.Repositories, repoFS fs.
 	api.Get("/browse/*", h.browseRepository)
 	api.Get("/javadoc", h.listJavadoc)
 	api.Get("/javadoc/*", h.getJavadoc)
+	api.Get("/badge/:groupId/:artifactId", h.getBadge)
 
 	authenticate := auth.Authenticate(repos)
 

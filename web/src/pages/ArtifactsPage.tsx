@@ -1,66 +1,20 @@
-import { useArtifacts, useDeleteArtifact } from '@/api/artifacts.ts';
+import { useArtifacts } from '@/api/artifacts.ts';
 import type { Artifact } from '@/api/types.ts';
 import { ArtifactDialog } from '@/components/artifacts/ArtifactDialog.tsx';
+import { artifactSettingsUrl } from '@/components/artifacts/urls.ts';
 import { PageHeader } from '@/components/PageHeader.tsx';
-import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-    AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
 import { InputGroup, InputGroupAddon, InputGroupInput } from '@/components/ui/input-group';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { toast } from '@/components/ui/toast';
 import { formatDate } from '@/lib/format.ts';
-import { Boxes, Globe, Lock, Pencil, Plus, Search, Trash2 } from 'lucide-react';
+import { Boxes, ChevronRight, Globe, Lock, Plus, Search } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import { Link, useNavigate } from 'react-router';
 
 const coordinates = (a: Artifact) => `${a.groupId}:${a.artifactId}`;
-
-function DeleteButton({ artifact }: { artifact: Artifact }) {
-    const remove = useDeleteArtifact();
-
-    function onDelete() {
-        remove.mutate(artifact, {
-            onSuccess: () => toast.add({ title: 'Artifact deleted', description: coordinates(artifact) }),
-            onError: (err) => toast.add({ title: 'Could not delete artifact', description: err.message }),
-        });
-    }
-
-    return (
-        <AlertDialog>
-            <AlertDialogTrigger
-                render={<Button variant="ghost" size="icon-sm" aria-label={`Delete ${coordinates(artifact)}`} />}
-            >
-                <Trash2 />
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-                <AlertDialogHeader>
-                    <AlertDialogTitle>Delete {coordinates(artifact)}?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                        It can no longer be published or downloaded. Files already uploaded stay on disk and become
-                        available again if you register the artifact again.
-                    </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction variant="destructive" disabled={remove.isPending} onClick={onDelete}>
-                        Delete
-                    </AlertDialogAction>
-                </AlertDialogFooter>
-            </AlertDialogContent>
-        </AlertDialog>
-    );
-}
 
 function Visibility({ isPublic }: { isPublic: boolean }) {
     return isPublic ? (
@@ -86,6 +40,7 @@ const registerButton = (
 export function ArtifactsPage() {
     const { data: artifacts, error, isPending } = useArtifacts();
     const [search, setSearch] = useState('');
+    const navigate = useNavigate();
 
     const filtered = useMemo(() => {
         const q = search.trim().toLowerCase();
@@ -153,7 +108,7 @@ export function ArtifactsPage() {
                                     <TableHead>Visibility</TableHead>
                                     <TableHead>Registered</TableHead>
                                     <TableHead className="w-0">
-                                        <span className="sr-only">Actions</span>
+                                        <span className="sr-only">Open</span>
                                     </TableHead>
                                 </TableRow>
                             </TableHeader>
@@ -165,37 +120,39 @@ export function ArtifactsPage() {
                                         </TableCell>
                                     </TableRow>
                                 )}
-                                {filtered.map((artifact) => (
-                                    <TableRow key={artifact.id}>
-                                        <TableCell className="max-w-md whitespace-normal">
-                                            <div className="font-mono text-sm">
-                                                <span className="text-muted-foreground">{artifact.groupId}:</span>
-                                                <span className="font-medium">{artifact.artifactId}</span>
-                                            </div>
-                                        </TableCell>
-                                        <TableCell>
-                                            <Visibility isPublic={artifact.public} />
-                                        </TableCell>
-                                        <TableCell>{formatDate(artifact.createdAt)}</TableCell>
-                                        <TableCell>
-                                            <div className="flex">
-                                                <ArtifactDialog
-                                                    artifact={artifact}
-                                                    trigger={
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="icon-sm"
-                                                            aria-label={`Edit ${coordinates(artifact)}`}
-                                                        >
-                                                            <Pencil />
-                                                        </Button>
-                                                    }
-                                                />
-                                                <DeleteButton artifact={artifact} />
-                                            </div>
-                                        </TableCell>
-                                    </TableRow>
-                                ))}
+                                {filtered.map((artifact) => {
+                                    const to = artifactSettingsUrl(artifact);
+                                    return (
+                                        <TableRow
+                                            key={artifact.id}
+                                            className="cursor-pointer"
+                                            onClick={() => void navigate(to)}
+                                        >
+                                            <TableCell className="max-w-md whitespace-normal">
+                                                <Link
+                                                    to={to}
+                                                    className="font-mono text-sm"
+                                                    onClick={(e) => e.stopPropagation()}
+                                                >
+                                                    <span className="text-muted-foreground">{artifact.groupId}:</span>
+                                                    <span className="font-medium">{artifact.artifactId}</span>
+                                                </Link>
+                                                {artifact.description && (
+                                                    <p className="mt-0.5 line-clamp-1 text-sm text-muted-foreground">
+                                                        {artifact.description}
+                                                    </p>
+                                                )}
+                                            </TableCell>
+                                            <TableCell>
+                                                <Visibility isPublic={artifact.public} />
+                                            </TableCell>
+                                            <TableCell>{formatDate(artifact.createdAt)}</TableCell>
+                                            <TableCell>
+                                                <ChevronRight className="size-4 text-muted-foreground" />
+                                            </TableCell>
+                                        </TableRow>
+                                    );
+                                })}
                             </TableBody>
                         </Table>
                     </div>

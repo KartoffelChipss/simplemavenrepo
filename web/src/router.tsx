@@ -1,6 +1,7 @@
 import { createBrowserRouter, Navigate } from 'react-router';
 import { Layout } from './components/Layout.tsx';
 import { RequireAdmin, RequireAuth } from './components/RequireAuth.tsx';
+import { ArtifactPage } from './pages/ArtifactPage.tsx';
 import { ArtifactsPage } from './pages/ArtifactsPage.tsx';
 import { BrowsePage } from './pages/BrowsePage.tsx';
 import { ErrorPage } from './pages/ErrorPage.tsx';
@@ -32,6 +33,7 @@ export const router = createBrowserRouter([
                         element: <RequireAdmin />,
                         children: [
                             { path: 'artifacts', element: <ArtifactsPage /> },
+                            { path: 'artifacts/:groupId/:artifactId', element: <ArtifactPage /> },
                             { path: 'users', element: <UsersPage /> },
                             { path: 'users/:username', element: <UserPage /> },
                             { path: 'teams', element: <TeamsPage /> },

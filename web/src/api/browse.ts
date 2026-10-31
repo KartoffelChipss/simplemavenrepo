@@ -22,3 +22,7 @@ export function useBrowse(path: string) {
     // Keeps showing the previous directory while the next one loads, so navigating doesn't flash a skeleton.
     return useQuery({ ...browseQuery(path), placeholderData: keepPreviousData });
 }
+
+/** URL of the SVG badge showing the latest version of an artifact. */
+export const badgeUrl = (groupId: string, artifactId: string) =>
+    `/api/badge/${encodeURIComponent(groupId)}/${encodeURIComponent(artifactId)}`;

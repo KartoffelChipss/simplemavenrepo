@@ -1,12 +1,12 @@
+import { useMe } from '@/api/auth.ts';
 import type { Artifact } from '@/api/types.ts';
-import { CopyButton } from '@/components/CopyButton.tsx';
+import { artifactSettingsUrl } from '@/components/artifacts/urls.ts';
+import { CodeSnippet } from '@/components/CodeSnippet.tsx';
 import { Badge } from '@/components/ui/badge';
-import { CodeBlock, CodeBlockActions, CodeBlockContent, CodeBlockLine } from '@/components/ui/code-block';
 import { Button } from '@/components/ui/button';
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useHighlightedCode } from '@/hooks/use-highlighted-code';
-import { BookOpen, Globe, Lock } from 'lucide-react';
+import { BookOpen, Globe, Lock, Settings } from 'lucide-react';
 import { Link } from 'react-router';
 
 function snippets(artifact: Artifact, version: string, repositoryUrl: string) {
@@ -56,23 +56,6 @@ dependencies {
     ];
 }
 
-function Snippet({ code, language, label }: { code: string; language: string; label: string }) {
-    const lines = useHighlightedCode(code, language);
-
-    return (
-        <CodeBlock size="sm">
-            <CodeBlockActions>
-                <CopyButton text={code} label={`Copy ${label} snippet`} size="icon-xs" />
-            </CodeBlockActions>
-            <CodeBlockContent>
-                {lines.map((line, i) => (
-                    <CodeBlockLine key={i}>{line}</CodeBlockLine>
-                ))}
-            </CodeBlockContent>
-        </CodeBlock>
-    );
-}
-
 export function ArtifactInfo({
     artifact,
     version,
@@ -83,6 +66,7 @@ export function ArtifactInfo({
     javadocUrl?: string;
 }) {
     const repositoryUrl = `${window.location.origin}/releases`;
+    const { data: me } = useMe();
 
     return (
         <Card>
@@ -106,12 +90,20 @@ export function ArtifactInfo({
                     )}
                 </CardTitle>
                 {artifact.description && <CardDescription>{artifact.description}</CardDescription>}
-                {javadocUrl && (
-                    <CardAction>
-                        <Button variant="outline" size="sm" render={<Link to={javadocUrl} />}>
-                            <BookOpen />
-                            Javadoc
-                        </Button>
+                {(javadocUrl || me?.isAdmin) && (
+                    <CardAction className="flex gap-2">
+                        {javadocUrl && (
+                            <Button variant="outline" size="sm" render={<Link to={javadocUrl} />}>
+                                <BookOpen />
+                                Javadoc
+                            </Button>
+                        )}
+                        {me?.isAdmin && (
+                            <Button variant="outline" size="sm" render={<Link to={artifactSettingsUrl(artifact)} />}>
+                                <Settings />
+                                Settings
+                            </Button>
+                        )}
                     </CardAction>
                 )}
             </CardHeader>
@@ -127,7 +119,7 @@ export function ArtifactInfo({
                         </TabsList>
                         {snippets(artifact, version, repositoryUrl).map((s) => (
                             <TabsContent key={s.id} value={s.id}>
-                                <Snippet code={s.code} language={s.language} label={s.label} />
+                                <CodeSnippet code={s.code} language={s.language} label={s.label} />
                             </TabsContent>
                         ))}
                         {!artifact.public && (
