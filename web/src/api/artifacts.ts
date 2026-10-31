@@ -11,8 +11,8 @@ export const getArtifact = (groupId: string, artifactId: string, signal?: AbortS
 export const createArtifact = (body: CreateArtifactRequest) => request<Artifact>('POST', '/artifacts', body);
 export const updateArtifact = (groupId: string, artifactId: string, body: UpdateArtifactRequest) =>
     request<Artifact>('PATCH', artifactPath(groupId, artifactId), body);
-export const deleteArtifact = (groupId: string, artifactId: string) =>
-    request<void>('DELETE', artifactPath(groupId, artifactId));
+export const deleteArtifact = (groupId: string, artifactId: string, deleteFiles: boolean) =>
+    request<void>('DELETE', `${artifactPath(groupId, artifactId)}${deleteFiles ? '?deleteFiles=true' : ''}`);
 export const listDeploys = (groupId: string, artifactId: string, page: number, signal?: AbortSignal) =>
     request<DeployPage>('GET', `${artifactPath(groupId, artifactId)}/deploys?page=${page}`, undefined, signal);
 
@@ -84,7 +84,8 @@ export function useUpdateArtifact() {
 export function useDeleteArtifact() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: ({ groupId, artifactId }: ArtifactId) => deleteArtifact(groupId, artifactId),
+        mutationFn: ({ groupId, artifactId, deleteFiles }: ArtifactId & { deleteFiles: boolean }) =>
+            deleteArtifact(groupId, artifactId, deleteFiles),
         onSuccess: (_, { groupId, artifactId }) => {
             queryClient.removeQueries({ queryKey: artifactKeys.detail(groupId, artifactId) });
             return Promise.all([

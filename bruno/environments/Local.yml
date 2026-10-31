@@ -2,25 +2,18 @@ name: Local
 variables:
   - name: baseUrl
     value: http://127.0.0.1:4321
-    description: ""
   - name: username
     value: alice
-    description: ""
   - name: team
     value: devs
-    description: ""
   - name: tokenId
     value: ""
-    description: ""
   - name: grantId
     value: ""
-    description: ""
   - name: groupId
     value: org.example
-    description: ""
   - name: artifactId
     value: weird-math
-    description: ""
   - secret: true
     name: token
     description: ""

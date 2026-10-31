@@ -18,6 +18,7 @@ import {
     AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Field, FieldContent, FieldDescription, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -151,15 +152,22 @@ function DeployLogCard({ artifact }: { artifact: Artifact }) {
 function DeleteArtifactCard({ artifact }: { artifact: Artifact }) {
     const remove = useDeleteArtifact();
     const navigate = useNavigate();
+    const [deleteFiles, setDeleteFiles] = useState(false);
 
     function onDelete() {
-        remove.mutate(artifact, {
-            onSuccess: () => {
-                toast.add({ title: 'Artifact deleted', description: coordinates(artifact) });
-                void navigate('/artifacts');
-            },
-            onError: (err) => toast.add({ title: 'Could not delete artifact', description: err.message }),
-        });
+        remove.mutate(
+            { ...artifact, deleteFiles },
+            {
+                onSuccess: () => {
+                    toast.add({
+                        title: deleteFiles ? 'Artifact and files deleted' : 'Artifact deleted',
+                        description: coordinates(artifact),
+                    });
+                    void navigate('/artifacts');
+                },
+                onError: (err) => toast.add({ title: 'Could not delete artifact', description: err.message }),
+            }
+        );
     }
 
     return (
@@ -168,11 +176,11 @@ function DeleteArtifactCard({ artifact }: { artifact: Artifact }) {
                 <CardTitle>Delete artifact</CardTitle>
                 <CardDescription>
                     It can no longer be published or downloaded. Files already uploaded stay on disk and become
-                    available again if you register the artifact again.
+                    available again if you register the artifact again, unless you choose to delete them too.
                 </CardDescription>
             </CardHeader>
             <CardContent>
-                <AlertDialog>
+                <AlertDialog onOpenChange={(open) => open && setDeleteFiles(false)}>
                     <AlertDialogTrigger render={<Button variant="destructive" />}>Delete artifact</AlertDialogTrigger>
                     <AlertDialogContent>
                         <AlertDialogHeader>
@@ -181,10 +189,24 @@ function DeleteArtifactCard({ artifact }: { artifact: Artifact }) {
                                 It can no longer be published or downloaded until it is registered again.
                             </AlertDialogDescription>
                         </AlertDialogHeader>
+                        <Field orientation="horizontal">
+                            <Checkbox
+                                id="artifact-delete-files"
+                                checked={deleteFiles}
+                                onCheckedChange={setDeleteFiles}
+                            />
+                            <FieldContent>
+                                <FieldLabel htmlFor="artifact-delete-files">Also delete files from disk</FieldLabel>
+                                <FieldDescription>
+                                    Permanently removes every uploaded version of the artifact. This cannot be undone.
+                                </FieldDescription>
+                            </FieldContent>
+                        </Field>
                         <AlertDialogFooter>
                             <AlertDialogCancel>Cancel</AlertDialogCancel>
                             <AlertDialogAction variant="destructive" disabled={remove.isPending} onClick={onDelete}>
-                                Delete
+                                {remove.isPending && <Spinner />}
+                                {deleteFiles ? 'Delete artifact and files' : 'Delete'}
                             </AlertDialogAction>
                         </AlertDialogFooter>
                     </AlertDialogContent>

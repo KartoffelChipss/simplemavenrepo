@@ -88,7 +88,7 @@ func (r *ArtifactRepository) Update(ctx context.Context, id int64, public, allow
 		public, allowReleaseOverwrite, description != nil, toNullString(description), id))
 }
 
-// Delete unregisters the artifact. Its files stay on disk but can no longer be downloaded.
+// Delete unregisters the artifact. Its files stay on disk unless removed separately, but can no longer be downloaded.
 func (r *ArtifactRepository) Delete(ctx context.Context, id int64) error {
 	return requireAffected(r.db.ExecContext(ctx, `DELETE FROM artifacts WHERE id = ?`, id))
 }

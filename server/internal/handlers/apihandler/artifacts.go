@@ -1,8 +1,15 @@
 package apihandler
 
 import (
+	"context"
+	"errors"
+	"io/fs"
+	"log"
+	"os"
+	"path"
 	"regexp"
 	"simplemavenrepo/internal/repository"
+	"strings"
 
 	"github.com/gofiber/fiber/v3"
 )
@@ -107,10 +114,85 @@ func (h *handler) deleteArtifact(c fiber.Ctx) error {
 	if err != nil {
 		return err
 	}
+	if fiber.Query[bool](c, "deleteFiles") {
+		if err := h.deleteArtifactFiles(c.Context(), a); err != nil {
+			log.Printf("Deleting files of %s:%s failed: %v", a.GroupID, a.ArtifactID, err)
+			return fiber.NewError(fiber.StatusInternalServerError)
+		}
+	}
 	if err := h.repos.Artifacts.Delete(c.Context(), a.ID); err != nil {
 		return repoError(err, "artifact")
 	}
 	return c.SendStatus(fiber.StatusNoContent)
+}
+
+// deleteArtifactFiles removes the artifact's directory, except for the directories of other artifacts nested inside it
+func (h *handler) deleteArtifactFiles(ctx context.Context, a repository.Artifact) error {
+	all, err := h.repos.Artifacts.List(ctx)
+	if err != nil {
+		return err
+	}
+	var nested []string
+	for _, other := range all {
+		if strings.HasPrefix(other.Path, a.Path+"/") {
+			nested = append(nested, other.Path)
+		}
+	}
+	if err := removeTreeExcept(h.root, a.Path, nested); err != nil {
+		return err
+	}
+	removeEmptyParents(h.root, a.Path)
+	return nil
+}
+
+// removeTreeExcept deletes dir and everything below it except the keep directories and the directories leading to
+// them. A missing dir is not an error.
+func removeTreeExcept(root *os.Root, dir string, keep []string) error {
+	if len(keep) == 0 {
+		return root.RemoveAll(dir)
+	}
+	entries, err := fs.ReadDir(root.FS(), dir)
+	if errors.Is(err, fs.ErrNotExist) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	for _, e := range entries {
+		child := path.Join(dir, e.Name())
+		var below []string
+		kept := false
+		for _, k := range keep {
+			if k == child {
+				kept = true
+			} else if strings.HasPrefix(k, child+"/") {
+				below = append(below, k)
+			}
+		}
+		if kept {
+			continue
+		}
+		if len(below) > 0 && e.IsDir() {
+			if err := removeTreeExcept(root, child, below); err != nil {
+				return err
+			}
+			continue
+		}
+		if err := root.RemoveAll(child); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// removeEmptyParents removes dir and its parents up to the repository root for as long as they are empty, so deleting
+// com/example/demo doesn't leave an empty com/example behind.
+func removeEmptyParents(root *os.Root, dir string) {
+	for ; dir != "." && dir != "/" && dir != ""; dir = path.Dir(dir) {
+		if err := root.Remove(dir); err != nil && !errors.Is(err, fs.ErrNotExist) {
+			return
+		}
+	}
 }
 
 func (h *handler) listDeploys(c fiber.Ctx) error {

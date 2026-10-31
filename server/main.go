@@ -113,7 +113,7 @@ func main() {
 		TimeFormat: "2006-01-02 15:04:05",
 	}))
 
-	apihandler.RegisterApiRoutes(app, repos, root.FS(), signer)
+	apihandler.RegisterApiRoutes(app, repos, root, signer)
 	javadochandler.RegisterJavadocRoutes(app, root.FS(), signer)
 	ressourcehandler.RegisterRessourceRoutes(app, repos)
 	webui.RegisterRoutes(app)

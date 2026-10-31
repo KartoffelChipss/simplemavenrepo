@@ -3,6 +3,7 @@ package apihandler
 import (
 	"errors"
 	"io/fs"
+	"os"
 	"simplemavenrepo/internal/auth"
 	"simplemavenrepo/internal/javadoc"
 	"simplemavenrepo/internal/repository"
@@ -12,12 +13,13 @@ import (
 
 type handler struct {
 	repos  repository.Repositories
+	root   *os.Root
 	repoFS fs.FS
 	signer *javadoc.Signer
 }
 
-func RegisterApiRoutes(app *fiber.App, repos repository.Repositories, repoFS fs.FS, signer *javadoc.Signer) {
-	h := &handler{repos: repos, repoFS: repoFS, signer: signer}
+func RegisterApiRoutes(app *fiber.App, repos repository.Repositories, root *os.Root, signer *javadoc.Signer) {
+	h := &handler{repos: repos, root: root, repoFS: root.FS(), signer: signer}
 	api := app.Group("/api")
 
 	api.Use(func(c fiber.Ctx) error {
