@@ -60,6 +60,24 @@ func Identify(c fiber.Ctx, repos repository.Repositories) error {
 	return nil
 }
 
+// IdentifyOptional is Identify for endpoints that also serve anonymous requests. ok is false for requests without
+// credentials and for an expired session cookie, which the web UI treats as logged out. Invalid tokens still fail.
+func IdentifyOptional(c fiber.Ctx, repos repository.Repositories) (user repository.User, ok bool, err error) {
+	if c.Get(fiber.HeaderAuthorization) == "" {
+		session := c.Cookies(SessionCookie)
+		if session == "" {
+			return repository.User{}, false, nil
+		}
+		if _, err := repos.Sessions.Authenticate(c.Context(), session); errors.Is(err, repository.ErrInvalidCredentials) {
+			return repository.User{}, false, nil
+		}
+	}
+	if err := Identify(c, repos); err != nil {
+		return repository.User{}, false, err
+	}
+	return CurrentUser(c), true, nil
+}
+
 func identifySession(c fiber.Ctx, sessions *repository.SessionRepository, session string) error {
 	if !isSameOrigin(c) {
 		return fiber.NewError(fiber.StatusForbidden, "cross-origin request")

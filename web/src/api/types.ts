@@ -115,3 +115,25 @@ export interface UpdateArtifactRequest {
     public?: boolean;
     description?: string;
 }
+
+export type BrowseEntryType = 'directory' | 'file';
+
+export interface BrowseEntry {
+    name: string;
+    type: BrowseEntryType;
+    /** Only set for files. */
+    size?: number;
+    /** Only set for files. */
+    modifiedAt?: string;
+    /** Set when the directory is the root of a registered artifact. */
+    artifact?: Artifact;
+}
+
+/** A directory of the repository, containing only what the caller may read. */
+export interface BrowseListing {
+    /** The normalized path without leading or trailing slashes, "" for the repository root. */
+    path: string;
+    /** The artifact the path is inside of, if any. */
+    artifact?: Artifact;
+    entries: BrowseEntry[];
+}

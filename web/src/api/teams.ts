@@ -1,5 +1,5 @@
 import { request, seg } from '@/api/client.ts';
-import { grantKeys, meKeys, teamKeys, userKeys } from '@/api/keys.ts';
+import { browseKeys, grantKeys, meKeys, teamKeys, userKeys } from '@/api/keys.ts';
 import type { CreateTeamRequest, Team, TeamDetails } from '@/api/types.ts';
 import { queryOptions, useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
 
@@ -47,6 +47,7 @@ function invalidateMembership(queryClient: QueryClient) {
         queryClient.invalidateQueries({ queryKey: teamKeys.all }),
         queryClient.invalidateQueries({ queryKey: userKeys.all }),
         queryClient.invalidateQueries({ queryKey: meKeys.all, exact: true }),
+        queryClient.invalidateQueries({ queryKey: browseKeys.all }),
     ]);
 }
 

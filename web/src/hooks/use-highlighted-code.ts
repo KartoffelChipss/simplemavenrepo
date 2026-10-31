@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import { loadHighlighter } from '@/lib/highlighter';
+import type { loadHighlighter } from '@/lib/highlighter';
 
 export function useHighlightedCode(value: string, language: string) {
     // A trailing newline would render as an extra empty line.
@@ -14,7 +14,9 @@ export function useHighlightedCode(value: string, language: string) {
     React.useEffect(() => {
         let cancelled = false;
 
-        loadHighlighter(language)
+        // Loaded on first use, shiki is too large for the main bundle.
+        import('@/lib/highlighter')
+            .then(({ loadHighlighter }) => loadHighlighter(language))
             .then((next) => {
                 if (!cancelled) {
                     setLoaded({ language, highlighter: next });

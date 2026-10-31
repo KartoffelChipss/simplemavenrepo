@@ -19,7 +19,7 @@ export const navGroups: NavGroup[] = [
     {
         label: 'Repository',
         visible: () => true,
-        items: [{ title: 'Browse', to: '/', icon: FolderTree, end: true }],
+        items: [{ title: 'Browse', to: '/browse', icon: FolderTree }],
     },
     {
         label: 'Account',

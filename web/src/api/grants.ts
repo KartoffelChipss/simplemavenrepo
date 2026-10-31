@@ -1,5 +1,5 @@
 import { request } from '@/api/client.ts';
-import { grantKeys, meKeys, teamKeys, userKeys } from '@/api/keys.ts';
+import { browseKeys, grantKeys, meKeys, teamKeys, userKeys } from '@/api/keys.ts';
 import type { CreateGrantRequest, Grant, GrantFilter } from '@/api/types.ts';
 import { queryOptions, useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
 
@@ -30,6 +30,7 @@ function invalidateGrants(queryClient: QueryClient) {
         queryClient.invalidateQueries({ queryKey: userKeys.all }),
         queryClient.invalidateQueries({ queryKey: teamKeys.all }),
         queryClient.invalidateQueries({ queryKey: meKeys.all, exact: true }),
+        queryClient.invalidateQueries({ queryKey: browseKeys.all }),
     ]);
 }
 

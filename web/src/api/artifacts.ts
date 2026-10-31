@@ -1,5 +1,5 @@
 import { request, seg } from '@/api/client.ts';
-import { artifactKeys } from '@/api/keys.ts';
+import { artifactKeys, browseKeys } from '@/api/keys.ts';
 import type { Artifact, CreateArtifactRequest, UpdateArtifactRequest } from '@/api/types.ts';
 import { queryOptions, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
@@ -43,7 +43,11 @@ export function useCreateArtifact() {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: createArtifact,
-        onSuccess: () => queryClient.invalidateQueries({ queryKey: artifactKeys.list() }),
+        onSuccess: () =>
+            Promise.all([
+                queryClient.invalidateQueries({ queryKey: artifactKeys.list() }),
+                queryClient.invalidateQueries({ queryKey: browseKeys.all }),
+            ]),
     });
 }
 
@@ -54,7 +58,10 @@ export function useUpdateArtifact() {
             updateArtifact(groupId, artifactId, body),
         onSuccess: (artifact) => {
             queryClient.setQueryData(artifactKeys.detail(artifact.groupId, artifact.artifactId), artifact);
-            return queryClient.invalidateQueries({ queryKey: artifactKeys.list() });
+            return Promise.all([
+                queryClient.invalidateQueries({ queryKey: artifactKeys.list() }),
+                queryClient.invalidateQueries({ queryKey: browseKeys.all }),
+            ]);
         },
     });
 }
@@ -65,7 +72,10 @@ export function useDeleteArtifact() {
         mutationFn: ({ groupId, artifactId }: ArtifactId) => deleteArtifact(groupId, artifactId),
         onSuccess: (_, { groupId, artifactId }) => {
             queryClient.removeQueries({ queryKey: artifactKeys.detail(groupId, artifactId) });
-            return queryClient.invalidateQueries({ queryKey: artifactKeys.list() });
+            return Promise.all([
+                queryClient.invalidateQueries({ queryKey: artifactKeys.list() }),
+                queryClient.invalidateQueries({ queryKey: browseKeys.all }),
+            ]);
         },
     });
 }

@@ -1,4 +1,4 @@
-import { createBrowserRouter } from 'react-router';
+import { createBrowserRouter, Navigate } from 'react-router';
 import { Layout } from './components/Layout.tsx';
 import { RequireAdmin, RequireAuth } from './components/RequireAuth.tsx';
 import { ArtifactsPage } from './pages/ArtifactsPage.tsx';
@@ -18,7 +18,7 @@ export const router = createBrowserRouter([
         element: <Layout />,
         errorElement: <ErrorPage />,
         children: [
-            { index: true, element: <BrowsePage /> },
+            { index: true, element: <Navigate to="/browse" replace /> },
             { path: 'browse/*', element: <BrowsePage /> },
             {
                 element: <RequireAuth />,
