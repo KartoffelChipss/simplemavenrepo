@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 # Build the web UI into the server's embed directory
-FROM node:24-alpine AS web
+FROM --platform=$BUILDPLATFORM node:24-alpine AS web
 RUN corepack enable
 WORKDIR /src/web
 COPY web/package.json web/pnpm-lock.yaml web/pnpm-workspace.yaml ./
@@ -11,7 +11,8 @@ COPY web/ ./
 RUN pnpm build
 
 # Build the server binary with the web UI embedded
-FROM golang:1.27-alpine AS server
+FROM --platform=$BUILDPLATFORM golang:1.27-alpine AS server
+ARG TARGETOS TARGETARCH
 WORKDIR /src/server
 COPY server/go.mod server/go.sum ./
 RUN --mount=type=cache,target=/go/pkg/mod \
@@ -20,7 +21,7 @@ COPY server/ ./
 COPY --from=web /src/server/internal/webui/dist ./internal/webui/dist
 RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/root/.cache/go-build \
-    CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/simplemavenrepo .
+    CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -trimpath -ldflags="-s -w" -o /out/simplemavenrepo .
 
 FROM alpine:3.22
 ARG VERSION=""
