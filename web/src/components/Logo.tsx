@@ -1,3 +1,4 @@
+import { cn } from '@/lib/utils';
 import { useTheme } from '../theme';
 
 export const Logo = () => {
@@ -8,4 +9,8 @@ export const Logo = () => {
     ) : (
         <img src="/logo.svg" alt="simplemavenrepo" className="h-5" />
     );
+};
+
+export const LogoMark = ({ className }: { className?: string }) => {
+    return <img src="/logo_mark.svg" alt="simplemavenrepo" className={cn('h-5', className)} />;
 };

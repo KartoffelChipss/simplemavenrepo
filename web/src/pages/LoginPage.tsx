@@ -7,7 +7,7 @@ import { Field, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field
 import { Input } from '@/components/ui/input';
 import { Spinner } from '@/components/ui/spinner';
 import { useDocumentTitle } from '@/title.ts';
-import { Package } from 'lucide-react';
+import { LogoMark } from '@/components/Logo.tsx';
 
 export function LoginPage() {
     const { data: user } = useMe();
@@ -31,9 +31,7 @@ export function LoginPage() {
         <div className="flex min-h-svh items-center justify-center bg-muted p-6">
             <div className="flex w-full max-w-sm flex-col gap-6">
                 <div className="flex items-center gap-2 self-center font-medium">
-                    <div className="flex size-7 items-center justify-center rounded-md bg-primary text-primary-foreground">
-                        <Package className="size-4" />
-                    </div>
+                    <LogoMark className="size-7" />
                     simplemavenrepo
                 </div>
                 <Card>

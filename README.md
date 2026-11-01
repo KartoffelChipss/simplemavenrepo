@@ -1,4 +1,9 @@
-# simplemavenrepo
+<h1>
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="./web/public/logo_dark.svg" />
+    <img src="./web/public/logo.svg" alt="simplemavenrepo" height="48" />
+  </picture>
+</h1>
 
 A very simple way to host your own Maven repository for your Maven and Gradle projects. It comes as a single
 service with a web UI that makes it easy to manage the repository: register artifacts, manage users and tokens,
