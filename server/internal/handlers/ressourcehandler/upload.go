@@ -26,7 +26,7 @@ import (
 
 var ignoredSuffixes = []string{".md5", ".sha1", ".sha256", ".sha512"}
 
-var storedExtensions = []string{".jar", ".pom"}
+var storedExtensions = []string{".jar", ".pom", ".module", ".aar", ".klib", ".war", ".ear", ".zip", ".tar.gz"}
 
 type deployment struct {
 	artifact *repository.Artifact
@@ -115,7 +115,7 @@ func upload(c fiber.Ctx, root *os.Root, repos repository.Repositories, d *deploy
 	}
 	d.artifact, d.relPath = &artifact, relPath
 	if !hasStoredExtension(relPath) {
-		return fiber.NewError(fiber.StatusUnsupportedMediaType, "only .jar and .pom files can be uploaded")
+		return fiber.NewError(fiber.StatusUnsupportedMediaType, "only "+strings.Join(storedExtensions, ", ")+" files can be uploaded")
 	}
 
 	replace := artifact.AllowReleaseOverwrite || isSnapshotPath(relPath)

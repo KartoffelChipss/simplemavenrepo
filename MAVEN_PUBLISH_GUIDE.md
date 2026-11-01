@@ -69,11 +69,6 @@ publishing {
         }
     }
 }
-
-// The server only stores .jar and .pom files
-tasks.withType<GenerateModuleMetadata> {
-    enabled = false
-}
 ```
 
 `credentials(PasswordCredentials::class)` reads `smrUsername` and `smrPassword` (named after the repository) from
@@ -99,4 +94,4 @@ gradle publish
 | `403 Forbidden` | The token is valid but no grant of the user or their teams covers the artifact. Check `GET /api/me`. |
 | `404 Not Found` | The artifact isn't registered. Maven reports this as "Could not find artifact". |
 | `409 Conflict` | This release version is already published and releases are immutable. Bump the version, or enable "Allow overwriting releases" on the artifact. Snapshots can always be redeployed. |
-| `415 Unsupported Media Type` | Only `.jar` and `.pom` files are stored. For Gradle, disable module metadata as shown above. |
+| `415 Unsupported Media Type` | Only `.jar`, `.pom`, `.module`, `.aar`, `.klib`, `.war`, `.ear`, `.zip` and `.tar.gz` files are stored. Signatures (`.asc`) are rejected, so publish without the `signing` plugin. |

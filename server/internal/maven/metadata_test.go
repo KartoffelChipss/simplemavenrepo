@@ -81,6 +81,32 @@ func TestNewSnapshotMetadata(t *testing.T) {
 	}
 }
 
+func TestNewSnapshotMetadataMultiPartExtension(t *testing.T) {
+	files := []string{
+		"lib-1.0-20261030.100000-1.aar",
+		"lib-1.0-20261030.100000-1.module",
+		"lib-1.0-20261030.100000-1.tar.gz",
+		"lib-1.0-20261030.100000-1.tar.gz.sha1",
+		"lib-1.0-20261030.100000-1-dist.tar.gz",
+		"lib-1.0-20261030.100000-1-dist.zip",
+	}
+	m, ok := NewSnapshotMetadata("org.example", "lib", "1.0-SNAPSHOT", files, []string{".aar", ".module", ".zip", ".tar.gz"}, testNow)
+	if !ok {
+		t.Fatal("expected metadata")
+	}
+
+	want := []SnapshotVersion{
+		{Extension: "aar", Value: "1.0-20261030.100000-1", Updated: "20261030100000"},
+		{Extension: "module", Value: "1.0-20261030.100000-1", Updated: "20261030100000"},
+		{Extension: "tar.gz", Value: "1.0-20261030.100000-1", Updated: "20261030100000"},
+		{Classifier: "dist", Extension: "tar.gz", Value: "1.0-20261030.100000-1", Updated: "20261030100000"},
+		{Classifier: "dist", Extension: "zip", Value: "1.0-20261030.100000-1", Updated: "20261030100000"},
+	}
+	if !slices.Equal(m.Versioning.SnapshotVersions.SnapshotVersion, want) {
+		t.Errorf("snapshotVersions = %+v, want %+v", m.Versioning.SnapshotVersions.SnapshotVersion, want)
+	}
+}
+
 func TestNewSnapshotMetadataNoTimestampedFiles(t *testing.T) {
 	_, ok := NewSnapshotMetadata("org.example", "lib", "1.0-SNAPSHOT", []string{"lib-1.0-SNAPSHOT.jar"}, []string{".jar"}, testNow)
 	if ok {
