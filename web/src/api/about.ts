@@ -12,6 +12,6 @@ export const aboutQuery = () =>
         staleTime: Infinity,
     });
 
-export function useAbout() {
-    return useQuery(aboutQuery());
+export function useAbout({ enabled = true }: { enabled?: boolean } = {}) {
+    return useQuery({ ...aboutQuery(), enabled });
 }

@@ -1,6 +1,9 @@
 export interface About {
     status: string;
-    version: string;
+    version?: string;
+    goVersion?: string;
+    platform?: string;
+    startedAt?: string;
 }
 
 /** Server-wide settings, null when not set. */

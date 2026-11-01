@@ -1,0 +1,16 @@
+.git
+.github
+.idea
+.task
+.DS_Store
+bin
+bruno
+config
+repo
+server/config
+**/node_modules
+server/internal/webui/dist
+*.db
+*.db-shm
+*.db-wal
+javadoc.key

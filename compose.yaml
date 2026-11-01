@@ -1,0 +1,21 @@
+services:
+    simplemavenrepo:
+        build:
+            context: .
+            args:
+                VERSION: ${SMR_VERSION:-}
+        image: simplemavenrepo
+        restart: unless-stopped
+        ports:
+            - '${SMR_PUBLISH_PORT:-4321}:4321'
+        environment:
+            SMR_BODY_LIMIT: ${SMR_BODY_LIMIT:-512MB}
+            SMR_TRUSTED_PROXIES: ${SMR_TRUSTED_PROXIES:-}
+        volumes:
+            - repo:/data/repo
+            - config:/data/config
+        stop_grace_period: 15s
+
+volumes:
+    repo:
+    config:

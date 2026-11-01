@@ -44,7 +44,7 @@ func RegisterApiRoutes(app *fiber.App, repos repository.Repositories, root *os.R
 		return c.Status(code).JSON(fiber.Map{"error": msg})
 	})
 
-	api.Get("/about", aboutHandler)
+	api.Get("/about", h.about)
 	api.Post("/auth/login", loginLimiter, h.login)
 	api.Post("/auth/logout", h.logout)
 	api.Get("/browse", h.browseRepository)
