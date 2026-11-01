@@ -1,6 +1,7 @@
 import { useLogout, useMe } from '@/api/auth.ts';
 import { useServerName } from '@/api/settings.ts';
 import { AboutDialog } from '@/components/AboutDialog.tsx';
+import { LogoMark } from '@/components/Logo.tsx';
 import { UserAvatar } from '@/components/UserAvatar.tsx';
 import { ChangeMyPasswordDialog } from '@/components/users/ChangeMyPasswordDialog.tsx';
 import {
@@ -32,7 +33,7 @@ import {
 } from '@/components/ui/sidebar';
 import { navGroups, type NavItem } from '@/nav.ts';
 import { setTheme, useTheme, type Theme } from '@/theme.ts';
-import { ChevronsUpDown, Info, KeyRound, LogIn, LogOut, Monitor, Moon, Package, Sun, SunMoon } from 'lucide-react';
+import { ChevronsUpDown, Info, KeyRound, LogIn, LogOut, Monitor, Moon, Sun, SunMoon } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useMatch, useNavigate } from 'react-router';
 
@@ -174,9 +175,7 @@ export function AppSidebar() {
                 <SidebarMenu>
                     <SidebarMenuItem>
                         <SidebarMenuButton size="lg" render={<Link to="/" />}>
-                            <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-                                <Package className="size-4" />
-                            </div>
+                            <LogoMark className="size-8" />
                             <div className="grid flex-1 text-left text-sm leading-tight">
                                 <span className="truncate font-semibold">{serverName}</span>
                                 <span className="truncate text-xs text-muted-foreground">Maven repository</span>

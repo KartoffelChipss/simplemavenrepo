@@ -138,8 +138,8 @@ function DeployLogCard({ artifact }: { artifact: Artifact }) {
             <CardHeader>
                 <CardTitle>Deploy log</CardTitle>
                 <CardDescription>
-                    Every upload of a .jar or .pom file, who made it and whether it succeeded. Checksums and metadata
-                    aren’t listed.
+                    Every upload of an artifact file (.jar, .pom, .aar, .war, .zip, …), who made it and whether it
+                    succeeded. Checksums and metadata aren’t listed.
                 </CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col gap-4">

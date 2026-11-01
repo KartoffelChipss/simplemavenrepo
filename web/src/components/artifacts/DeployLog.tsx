@@ -119,7 +119,7 @@ export function DeployLog({ artifact }: { artifact: Artifact }) {
                         </EmptyMedia>
                         <EmptyTitle>Nothing deployed yet</EmptyTitle>
                         <EmptyDescription>
-                            Uploads of .jar and .pom files show up here, including failed ones.
+                            Uploads of artifact files show up here, including failed ones.
                         </EmptyDescription>
                     </EmptyHeader>
                 </Empty>

@@ -12,7 +12,8 @@ import {
 } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatDateTime } from '@/lib/format.ts';
-import { ExternalLink, Package } from 'lucide-react';
+import { ExternalLink } from 'lucide-react';
+import { LogoMark } from '@/components/Logo.tsx';
 import type { ReactNode } from 'react';
 
 const REPO_URL = 'https://github.com/KartoffelChipss/simplemavenrepo';
@@ -64,9 +65,7 @@ export function AboutDialog({
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="sm:max-w-md">
                 <DialogHeader className="items-center text-center sm:items-center sm:text-center">
-                    <div className="mb-2 flex size-12 items-center justify-center rounded-xl bg-primary text-primary-foreground">
-                        <Package className="size-6" />
-                    </div>
+                    <LogoMark className="mb-2 size-12" />
                     <DialogTitle>{serverName}</DialogTitle>
                     <DialogDescription>
                         Powered by simplemavenrepo, a simple self-hosted Maven repository.
