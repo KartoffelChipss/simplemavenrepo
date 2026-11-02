@@ -7,6 +7,7 @@ export const aboutKeys = {
 export const statsKeys = {
     all: ['stats'] as const,
     storage: () => [...statsKeys.all, 'storage'] as const,
+    downloads: (days: number) => [...statsKeys.all, 'downloads', days] as const,
 };
 
 export const settingsKeys = {
@@ -42,6 +43,8 @@ export const artifactKeys = {
     detail: (groupId: string, artifactId: string) => [...artifactKeys.all, 'detail', groupId, artifactId] as const,
     deploys: (groupId: string, artifactId: string, page: number) =>
         [...artifactKeys.detail(groupId, artifactId), 'deploys', page] as const,
+    downloads: (groupId: string, artifactId: string, days: number) =>
+        [...artifactKeys.detail(groupId, artifactId), 'downloads', days] as const,
 };
 
 export const browseKeys = {

@@ -22,7 +22,8 @@ No complex setup, no plugins, no external database. Start the container, log in,
 - **Access tokens** for Maven and Gradle, created per user from the web UI. Tokens can be restricted to single artifacts, so a leaked CI token only exposes what it publishes.
 - **Users and teams** to organize who has access to what.
 - **Release and snapshot** versions, with optional protection against overwriting releases.
-- **README badges** showing the latest version of an artifact.
+- **Download statistics** per artifact and version, with charts over time for admins.
+- **README badges** showing the latest version of an artifact or its downloads per week, month, year or in total.
 
 ## Screenshots
 

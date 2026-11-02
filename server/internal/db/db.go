@@ -115,6 +115,17 @@ var migrations = []string{
 		PRIMARY KEY (token_id, pattern, permission)
 	);
 	`,
+	`
+	CREATE TABLE downloads (
+		artifact_path TEXT    NOT NULL,
+		version       TEXT    NOT NULL,
+		-- Unix seconds of the day's midnight in UTC
+		day           INTEGER NOT NULL,
+		count         INTEGER NOT NULL,
+		PRIMARY KEY (artifact_path, day, version)
+	) WITHOUT ROWID;
+	CREATE INDEX downloads_day ON downloads(day);
+	`,
 }
 
 // Open opens the SQLite database at path and migrates it to the latest schema.

@@ -23,14 +23,7 @@ func (h *handler) getBadge(c fiber.Ctx) error {
 	}
 
 	send := func(message, color string, public bool) error {
-		c.Set(fiber.HeaderContentType, "image/svg+xml; charset=utf-8")
-		if public {
-			c.Set(fiber.HeaderCacheControl, "public, max-age=300")
-		} else {
-			// Whether the artifact exists depends on who is asking.
-			c.Set(fiber.HeaderCacheControl, "no-store")
-		}
-		return c.Send(badge.Render(label, message, color))
+		return sendBadge(c, label, message, color, public)
 	}
 
 	artifact, err := h.repos.Artifacts.Get(c.Context(), c.Params("groupId"), c.Params("artifactId"))
@@ -57,6 +50,17 @@ func (h *handler) getBadge(c fiber.Ctx) error {
 	default:
 		return send("v"+version, badge.ColorBlue, artifact.Public)
 	}
+}
+
+func sendBadge(c fiber.Ctx, label, message, color string, public bool) error {
+	c.Set(fiber.HeaderContentType, "image/svg+xml; charset=utf-8")
+	if public {
+		c.Set(fiber.HeaderCacheControl, "public, max-age=300")
+	} else {
+		// Whether the artifact exists depends on who is asking.
+		c.Set(fiber.HeaderCacheControl, "no-store")
+	}
+	return c.Send(badge.Render(label, message, color))
 }
 
 func (h *handler) latestVersion(artifact repository.Artifact) string {

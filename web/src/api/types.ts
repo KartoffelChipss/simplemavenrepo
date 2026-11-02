@@ -94,6 +94,38 @@ export interface StorageStats {
     largestArtifacts: ArtifactDetails[];
 }
 
+/** Length of a download period in days, ending today. */
+export type DownloadDays = 7 | 30 | 90 | 365;
+
+/** Downloads on one UTC day. */
+export interface DayDownloads {
+    /** Formatted as 2026-01-31. */
+    date: string;
+    count: number;
+}
+
+/** Downloads count fetches of the main file of a version, not of POMs, checksums, sources or javadoc. */
+export interface ArtifactDownloads {
+    /** All time. */
+    total: number;
+    periodTotal: number;
+    days: DownloadDays;
+    /** Every day of the period, oldest first, including days without downloads. */
+    daily: DayDownloads[];
+    /** Downloads in the period per version, most downloaded first. */
+    versions: { version: string; count: number }[];
+}
+
+export interface DownloadStats {
+    /** All time, including artifacts that are no longer registered. */
+    total: number;
+    periodTotal: number;
+    days: DownloadDays;
+    daily: DayDownloads[];
+    /** Most downloaded registered artifacts in the period. */
+    topArtifacts: (Artifact & { downloads: number })[];
+}
+
 export interface Deploy {
     id: number;
     version: string;

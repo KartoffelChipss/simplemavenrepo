@@ -26,3 +26,8 @@ export function useBrowse(path: string) {
 /** URL of the SVG badge showing the latest version of an artifact. */
 export const badgeUrl = (groupId: string, artifactId: string) =>
     `/api/badge/${encodeURIComponent(groupId)}/${encodeURIComponent(artifactId)}`;
+
+export type BadgePeriod = 'week' | 'month' | 'year' | 'all';
+
+export const downloadsBadgeUrl = (groupId: string, artifactId: string, period: BadgePeriod) =>
+    `${badgeUrl(groupId, artifactId)}/downloads${period === 'all' ? '' : `?period=${period}`}`;

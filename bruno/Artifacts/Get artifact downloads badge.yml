@@ -1,0 +1,20 @@
+info:
+  name: Get artifact downloads badge
+  type: http
+  seq: 7
+
+http:
+  method: GET
+  url: "{{baseUrl}}/api/badge/{{groupId}}/{{artifactId}}/downloads?period=month"
+  params:
+    - name: period
+      value: "month"
+      type: query
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true

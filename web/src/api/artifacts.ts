@@ -3,8 +3,10 @@ import { artifactKeys, browseKeys, statsKeys } from '@/api/keys.ts';
 import type {
     Artifact,
     ArtifactDetails,
+    ArtifactDownloads,
     CreateArtifactRequest,
     DeployPage,
+    DownloadDays,
     UpdateArtifactRequest,
 } from '@/api/types.ts';
 import { keepPreviousData, queryOptions, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -21,6 +23,9 @@ export const deleteArtifact = (groupId: string, artifactId: string, deleteFiles:
     request<void>('DELETE', `${artifactPath(groupId, artifactId)}${deleteFiles ? '?deleteFiles=true' : ''}`);
 export const listDeploys = (groupId: string, artifactId: string, page: number, signal?: AbortSignal) =>
     request<DeployPage>('GET', `${artifactPath(groupId, artifactId)}/deploys?page=${page}`, undefined, signal);
+
+export const getArtifactDownloads = (groupId: string, artifactId: string, days: DownloadDays, signal?: AbortSignal) =>
+    request<ArtifactDownloads>('GET', `${artifactPath(groupId, artifactId)}/downloads?days=${days}`, undefined, signal);
 
 interface ArtifactId {
     groupId: string;
@@ -48,6 +53,14 @@ export const deploysQuery = ({ groupId, artifactId }: ArtifactId, page: number) 
         placeholderData: keepPreviousData,
     });
 
+export const artifactDownloadsQuery = ({ groupId, artifactId }: ArtifactId, days: DownloadDays) =>
+    queryOptions({
+        queryKey: artifactKeys.downloads(groupId, artifactId, days),
+        queryFn: ({ signal }) => getArtifactDownloads(groupId, artifactId, days, signal),
+        // Keep showing the current period while the next one loads so the chart doesn't jump
+        placeholderData: keepPreviousData,
+    });
+
 export function useArtifacts() {
     return useQuery(artifactsQuery());
 }
@@ -58,6 +71,10 @@ export function useArtifact(id: ArtifactId) {
 
 export function useDeploys(id: ArtifactId, page: number) {
     return useQuery(deploysQuery(id, page));
+}
+
+export function useArtifactDownloads(id: ArtifactId, days: DownloadDays) {
+    return useQuery(artifactDownloadsQuery(id, days));
 }
 
 export function useCreateArtifact() {

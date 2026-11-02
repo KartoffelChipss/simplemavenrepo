@@ -2,6 +2,7 @@ import { useArtifact, useDeleteArtifact, useUpdateArtifact } from '@/api/artifac
 import { isApiError } from '@/api/client.ts';
 import type { Artifact } from '@/api/types.ts';
 import { DeployLog } from '@/components/artifacts/DeployLog.tsx';
+import { DownloadsCard } from '@/components/downloads/DownloadsCard.tsx';
 import { ReadmeBadge } from '@/components/artifacts/ReadmeBadge.tsx';
 import { artifactBrowseUrl } from '@/components/artifacts/urls.ts';
 import { MAX_DESCRIPTION_LENGTH } from '@/components/artifacts/validation.ts';
@@ -121,8 +122,8 @@ function BadgeCard({ artifact }: { artifact: Artifact }) {
                 <CardTitle>README badge</CardTitle>
                 <CardDescription>
                     {artifact.public
-                        ? 'Shows the latest release and links to the artifact in the repository.'
-                        : 'The badge only shows the version to people with read access, so it won’t work in public READMEs until the artifact is public.'}
+                        ? 'Shows the latest release or the download count and links to the artifact in the repository.'
+                        : 'Badges only show the version or downloads to people with read access, so they won’t work in public READMEs until the artifact is public.'}
                 </CardDescription>
             </CardHeader>
             <CardContent>
@@ -265,6 +266,7 @@ export function ArtifactPage() {
                         />
                         <BadgeCard artifact={artifact} />
                     </div>
+                    <DownloadsCard artifact={artifact} />
                     <DeployLogCard artifact={artifact} />
                     <DeleteArtifactCard artifact={artifact} />
                 </>
