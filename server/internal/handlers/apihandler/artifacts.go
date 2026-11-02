@@ -9,6 +9,7 @@ import (
 	"path"
 	"regexp"
 	"simplemavenrepo/internal/repository"
+	"simplemavenrepo/internal/storage"
 	"strings"
 
 	"github.com/gofiber/fiber/v3"
@@ -49,12 +50,39 @@ func (h *handler) artifactParam(c fiber.Ctx) (repository.Artifact, error) {
 	return a, nil
 }
 
+// artifactWithSize is an artifact with the disk space its files take, not counting artifacts nested inside it.
+type artifactWithSize struct {
+	repository.Artifact
+	Size int64 `json:"size"`
+}
+
+func (h *handler) withSize(ctx context.Context, a repository.Artifact) (artifactWithSize, error) {
+	all, err := h.repos.Artifacts.List(ctx)
+	if err != nil {
+		return artifactWithSize{}, repoError(err, "artifact")
+	}
+	paths := make([]string, len(all))
+	for i, other := range all {
+		paths[i] = other.Path
+	}
+	u, err := storage.Measure(h.repoFS, a.Path, paths)
+	if err != nil {
+		log.Printf("Measuring the size of %s:%s failed: %v", a.GroupID, a.ArtifactID, err)
+		return artifactWithSize{}, fiber.NewError(fiber.StatusInternalServerError)
+	}
+	return artifactWithSize{Artifact: a, Size: u.ByArtifact[a.Path]}, nil
+}
+
 func (h *handler) getArtifact(c fiber.Ctx) error {
 	a, err := h.artifactParam(c)
 	if err != nil {
 		return err
 	}
-	return c.JSON(a)
+	res, err := h.withSize(c.Context(), a)
+	if err != nil {
+		return err
+	}
+	return c.JSON(res)
 }
 
 func (h *handler) createArtifact(c fiber.Ctx) error {
@@ -106,7 +134,11 @@ func (h *handler) updateArtifact(c fiber.Ctx) error {
 	if err != nil {
 		return repoError(err, "artifact")
 	}
-	return c.JSON(a)
+	res, err := h.withSize(c.Context(), a)
+	if err != nil {
+		return err
+	}
+	return c.JSON(res)
 }
 
 func (h *handler) deleteArtifact(c fiber.Ctx) error {

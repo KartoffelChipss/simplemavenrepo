@@ -4,6 +4,11 @@ export const aboutKeys = {
     all: ['about'] as const,
 };
 
+export const statsKeys = {
+    all: ['stats'] as const,
+    storage: () => [...statsKeys.all, 'storage'] as const,
+};
+
 export const settingsKeys = {
     all: ['settings'] as const,
 };

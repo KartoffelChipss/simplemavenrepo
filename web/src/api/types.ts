@@ -80,6 +80,20 @@ export interface Artifact {
     createdAt: string;
 }
 
+/** An artifact with the disk space its files take, not counting artifacts nested inside its directory. */
+export interface ArtifactDetails extends Artifact {
+    /** Size in bytes. */
+    size: number;
+}
+
+export interface StorageStats {
+    totalSize: number;
+    fileCount: number;
+    artifactCount: number;
+    unregisteredSize: number;
+    largestArtifacts: ArtifactDetails[];
+}
+
 export interface Deploy {
     id: number;
     version: string;

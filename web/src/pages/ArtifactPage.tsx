@@ -26,7 +26,7 @@ import { Spinner } from '@/components/ui/spinner';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from '@/components/ui/toast';
-import { formatDate } from '@/lib/format.ts';
+import { formatBytes, formatDate } from '@/lib/format.ts';
 import { usePageTitle } from '@/title.ts';
 import { ArrowLeft, FolderTree } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
@@ -251,7 +251,7 @@ export function ArtifactPage() {
                     <div className="flex flex-wrap items-start justify-between gap-4">
                         <PageHeader
                             title={coordinates(artifact)}
-                            description={`Registered ${formatDate(artifact.createdAt)}`}
+                            description={`Registered ${formatDate(artifact.createdAt)} · ${formatBytes(artifact.size)} on disk`}
                         />
                         <Button variant="outline" render={<Link to={artifactBrowseUrl(artifact)} />}>
                             <FolderTree />

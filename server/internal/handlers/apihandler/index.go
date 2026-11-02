@@ -87,6 +87,7 @@ func RegisterApiRoutes(app *fiber.App, repos repository.Repositories, root *os.R
 	grants.Delete("/:id", h.deleteGrant)
 
 	api.Patch("/settings", authenticate, auth.RequireAdmin, h.updateSettings)
+	api.Get("/stats/storage", authenticate, auth.RequireAdmin, h.getStorageStats)
 
 	artifacts := api.Group("/artifacts", authenticate, auth.RequireAdmin)
 	artifacts.Get("", h.listArtifacts)
