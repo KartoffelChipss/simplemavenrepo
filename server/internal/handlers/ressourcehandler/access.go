@@ -31,7 +31,7 @@ func newReadGuard(repos repository.Repositories) fiber.Handler {
 		if err := auth.Identify(c, repos); err != nil {
 			return err
 		}
-		allowed, err := auth.Authorize(c.Context(), repos.Grants, auth.CurrentUser(c), relPath, repository.PermissionRead)
+		allowed, err := auth.Authorize(c, repos.Grants, relPath, repository.PermissionRead)
 		if err != nil {
 			log.Printf("Checking permissions for %s failed: %v", relPath, err)
 			return fiber.ErrInternalServerError

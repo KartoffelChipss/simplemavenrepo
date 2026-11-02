@@ -30,4 +30,4 @@ settings:
   maxRedirects: 5
   forwardAuthorizationHeader: true
 
-docs: The plaintext `token` in the response is only shown once.
+docs: The plaintext `token` in the response is only shown once. Optional `scopes` restrict the token to repository paths, without them it has the full access of the user. Scoped tokens are rejected by the management API.

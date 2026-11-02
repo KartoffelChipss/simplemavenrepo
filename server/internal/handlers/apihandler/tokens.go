@@ -1,12 +1,15 @@
 package apihandler
 
 import (
+	"fmt"
 	"simplemavenrepo/internal/auth"
 	"simplemavenrepo/internal/repository"
 	"time"
 
 	"github.com/gofiber/fiber/v3"
 )
+
+const maxTokenScopes = 100
 
 type createdToken struct {
 	repository.Token
@@ -26,6 +29,8 @@ func (h *handler) createToken(c fiber.Ctx, u repository.User) error {
 	var req struct {
 		Name      string     `json:"name"`
 		ExpiresAt *time.Time `json:"expiresAt"`
+		// Optional, without scopes the token has the full access of the user
+		Scopes []repository.TokenScope `json:"scopes"`
 	}
 	if err := bindJSON(c, &req); err != nil {
 		return err
@@ -36,8 +41,21 @@ func (h *handler) createToken(c fiber.Ctx, u repository.User) error {
 	if req.ExpiresAt != nil && !req.ExpiresAt.After(time.Now()) {
 		return fiber.NewError(fiber.StatusBadRequest, "expiresAt must be in the future")
 	}
+	if len(req.Scopes) > maxTokenScopes {
+		return fiber.NewError(fiber.StatusBadRequest, fmt.Sprintf("a token can have at most %d scopes", maxTokenScopes))
+	}
+	for i, s := range req.Scopes {
+		pattern, err := repository.NormalizePattern(s.Pattern)
+		if err != nil {
+			return fiber.NewError(fiber.StatusBadRequest, err.Error())
+		}
+		if !s.Permission.Valid() {
+			return fiber.NewError(fiber.StatusBadRequest, `permission must be "read" or "write"`)
+		}
+		req.Scopes[i].Pattern = pattern
+	}
 
-	t, secret, err := h.repos.Tokens.Create(c.Context(), u.ID, req.Name, req.ExpiresAt)
+	t, secret, err := h.repos.Tokens.Create(c.Context(), u.ID, req.Name, req.ExpiresAt, req.Scopes)
 	if err != nil {
 		return repoError(err, "token")
 	}

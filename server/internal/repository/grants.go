@@ -17,6 +17,11 @@ func (p Permission) Valid() bool {
 	return p == PermissionRead || p == PermissionWrite
 }
 
+// Includes reports whether holding p gives other. A write permission implies read.
+func (p Permission) Includes(other Permission) bool {
+	return p == other || p == PermissionWrite
+}
+
 type Grant struct {
 	ID         int64      `json:"id"`
 	User       string     `json:"user,omitempty"`

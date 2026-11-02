@@ -1,6 +1,6 @@
 import { useCreateGrant, useDeleteGrant } from '@/api/grants.ts';
 import type { Grant, Permission } from '@/api/types.ts';
-import { normalizePattern } from '@/components/grants/pattern.ts';
+import { normalizePattern, permissionOptions } from '@/components/grants/pattern.ts';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Field, FieldDescription, FieldError, FieldLabel } from '@/components/ui/field';
@@ -13,11 +13,6 @@ import { Plus, Trash2 } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 
 export type GrantTarget = { team: string } | { user: string };
-
-const permissionOptions: { value: Permission; label: string }[] = [
-    { value: 'read', label: 'Read' },
-    { value: 'write', label: 'Read & write' },
-];
 
 export function PermissionBadge({ permission }: { permission: Permission }) {
     return permission === 'write' ? <Badge>Read & write</Badge> : <Badge variant="outline">Read</Badge>;

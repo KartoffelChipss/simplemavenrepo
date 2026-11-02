@@ -19,7 +19,7 @@ No complex setup, no plugins, no external database. Start the container, log in,
 - **View javadocs** right in the browser. Publish a javadoc jar alongside your artifact and it shows up automatically, with search and a version switcher.
 - **Public and private artifacts.** Public artifacts can be downloaded by anyone, private ones require a token.
 - **Fine grained permissions if you want them.** Grant users or teams read or write access to a whole group (like `com/example/**`) or a single artifact. If you don't need that, admins can access everything and you can ignore it.
-- **Access tokens** for Maven and Gradle, created per user from the web UI.
+- **Access tokens** for Maven and Gradle, created per user from the web UI. Tokens can be restricted to single artifacts, so a leaked CI token only exposes what it publishes.
 - **Users and teams** to organize who has access to what.
 - **Release and snapshot** versions, with optional protection against overwriting releases.
 - **README badges** showing the latest version of an artifact.

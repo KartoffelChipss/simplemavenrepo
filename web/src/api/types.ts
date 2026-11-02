@@ -57,6 +57,12 @@ export interface Token {
     createdAt: string;
     expiresAt: string | null;
     lastUsedAt: string | null;
+    scopes: TokenScope[];
+}
+
+export interface TokenScope {
+    pattern: string;
+    permission: Permission;
 }
 
 export interface CreatedToken extends Token {
@@ -120,6 +126,7 @@ export interface UpdateUserRequest {
 export interface CreateTokenRequest {
     name: string;
     expiresAt: string | null;
+    scopes?: TokenScope[];
 }
 
 export interface CreateTeamRequest {

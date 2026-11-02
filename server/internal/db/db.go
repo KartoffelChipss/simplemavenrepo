@@ -107,6 +107,14 @@ var migrations = []string{
 	);
 	INSERT INTO settings (id) VALUES (1);
 	`,
+	`
+	CREATE TABLE token_scopes (
+		token_id   INTEGER NOT NULL REFERENCES tokens(id) ON DELETE CASCADE,
+		pattern    TEXT    NOT NULL,
+		permission TEXT    NOT NULL CHECK (permission IN ('read', 'write')),
+		PRIMARY KEY (token_id, pattern, permission)
+	);
+	`,
 }
 
 // Open opens the SQLite database at path and migrates it to the latest schema.

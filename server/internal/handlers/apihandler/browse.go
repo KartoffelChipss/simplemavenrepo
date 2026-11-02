@@ -11,18 +11,18 @@ import (
 
 // readFilter returns a function that reports whether the caller, who may be anonymous, can read an artifact.
 func (h *handler) readFilter(c fiber.Ctx) (func(repository.Artifact) bool, error) {
-	user, loggedIn, err := auth.IdentifyOptional(c, h.repos)
+	_, loggedIn, err := auth.IdentifyOptional(c, h.repos)
 	if err != nil {
 		return nil, err
 	}
-	var grants []repository.Grant
-	if loggedIn && !user.IsAdmin {
-		if grants, err = h.repos.Grants.ListEffective(c.Context(), user.ID); err != nil {
+	var allowed func(string, repository.Permission) bool
+	if loggedIn {
+		if allowed, err = auth.Permissions(c, h.repos.Grants); err != nil {
 			return nil, repoError(err, "grant")
 		}
 	}
 	return func(a repository.Artifact) bool {
-		return a.Public || (loggedIn && (user.IsAdmin || auth.Allowed(grants, a.Path, repository.PermissionRead)))
+		return a.Public || (loggedIn && allowed(a.Path, repository.PermissionRead))
 	}, nil
 }
 

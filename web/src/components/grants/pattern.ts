@@ -1,3 +1,5 @@
+import type { Permission } from '@/api/types.ts';
+
 const MATCH_ALL = '**';
 
 export function normalizePattern(input: string): { pattern: string } | { error: string } {
@@ -12,3 +14,8 @@ export function normalizePattern(input: string): { pattern: string } | { error: 
     }
     return { pattern: `${p}/${MATCH_ALL}` };
 }
+
+export const permissionOptions: { value: Permission; label: string }[] = [
+    { value: 'read', label: 'Read' },
+    { value: 'write', label: 'Read & write' },
+];

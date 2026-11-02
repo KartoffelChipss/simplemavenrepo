@@ -90,7 +90,7 @@ func upload(c fiber.Ctx, root *os.Root, repos repository.Repositories, d *deploy
 		return fiber.NewError(fiber.StatusBadRequest, err.Error())
 	}
 
-	allowed, err := auth.Authorize(c.Context(), repos.Grants, auth.CurrentUser(c), relPath, repository.PermissionWrite)
+	allowed, err := auth.Authorize(c, repos.Grants, relPath, repository.PermissionWrite)
 	if err != nil {
 		log.Printf("Checking permissions for %s failed: %v", relPath, err)
 		return fiber.ErrInternalServerError

@@ -1,5 +1,6 @@
 import { useDeleteMyToken, useDeleteUserToken } from '@/api/tokens.ts';
 import type { Token } from '@/api/types.ts';
+import { PermissionBadge } from '@/components/grants/GrantEditor.tsx';
 import {
     AlertDialog,
     AlertDialogAction,
@@ -24,6 +25,20 @@ function Expiry({ expiresAt }: { expiresAt: string | null }) {
     if (!expiresAt) return <span className="text-muted-foreground">Never</span>;
     if (new Date(expiresAt) <= new Date()) return <Badge variant="destructive">Expired</Badge>;
     return <>{formatDate(expiresAt)}</>;
+}
+
+function Scopes({ token }: { token: Token }) {
+    if (!token.scopes?.length) return <span className="text-muted-foreground">Full access</span>;
+    return (
+        <ul className="flex flex-col gap-1">
+            {token.scopes.map((s) => (
+                <li key={`${s.pattern} ${s.permission}`} className="flex items-center gap-2">
+                    <span className="font-mono">{s.pattern}</span>
+                    <PermissionBadge permission={s.permission} />
+                </li>
+            ))}
+        </ul>
+    );
 }
 
 function RevokeButton({ token, username }: { token: Token; username?: string }) {
@@ -101,6 +116,7 @@ export function TokenTable({ tokens, isPending, error, username, emptyDescriptio
                             <TableRow>
                                 <TableHead>Name</TableHead>
                                 <TableHead>Token</TableHead>
+                                <TableHead>Access</TableHead>
                                 <TableHead>Created</TableHead>
                                 <TableHead>Last used</TableHead>
                                 <TableHead>Expires</TableHead>
@@ -114,6 +130,9 @@ export function TokenTable({ tokens, isPending, error, username, emptyDescriptio
                                 <TableRow key={token.id}>
                                     <TableCell className="font-medium">{token.name}</TableCell>
                                     <TableCell className="font-mono text-muted-foreground">{token.prefix}…</TableCell>
+                                    <TableCell>
+                                        <Scopes token={token} />
+                                    </TableCell>
                                     <TableCell>{formatDate(token.createdAt)}</TableCell>
                                     <TableCell>
                                         {token.lastUsedAt ? (
