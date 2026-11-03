@@ -7,9 +7,9 @@ import (
 )
 
 type Usage struct {
-	Total int64
-	Files int64
-	ByArtifact map[string]int64
+	Total        int64
+	Files        int64
+	ByArtifact   map[string]int64
 	Unregistered int64
 }
 
