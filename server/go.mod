@@ -3,11 +3,14 @@ module simplemavenrepo
 go 1.27
 
 require (
+	deps.dev/util/maven v0.0.0-20261013100046-7bac2db56a63
 	github.com/gofiber/fiber/v3 v3.6.1
+	golang.org/x/crypto v0.58.0
 	modernc.org/sqlite v1.57.0
 )
 
 require (
+	deps.dev/util/semver v0.0.0-20240109040450-1e316b822bc4 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/gofiber/schema v1.8.8 // indirect
 	github.com/gofiber/utils/v2 v2.6.2 // indirect
@@ -22,7 +25,6 @@ require (
 	github.com/tinylib/msgp v1.6.5 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasthttp v1.75.0 // indirect
-	golang.org/x/crypto v0.58.0 // indirect
 	golang.org/x/net v0.61.0 // indirect
 	golang.org/x/sys v0.49.0 // indirect
 	golang.org/x/text v0.43.0 // indirect

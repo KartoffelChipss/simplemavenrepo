@@ -57,6 +57,12 @@ export interface Token {
     createdAt: string;
     expiresAt: string | null;
     lastUsedAt: string | null;
+    scopes: TokenScope[];
+}
+
+export interface TokenScope {
+    pattern: string;
+    permission: Permission;
 }
 
 export interface CreatedToken extends Token {
@@ -72,6 +78,52 @@ export interface Artifact {
     allowReleaseOverwrite: boolean;
     description: string | null;
     createdAt: string;
+}
+
+/** An artifact with the disk space its files take, not counting artifacts nested inside its directory. */
+export interface ArtifactDetails extends Artifact {
+    /** Size in bytes. */
+    size: number;
+}
+
+export interface StorageStats {
+    totalSize: number;
+    fileCount: number;
+    artifactCount: number;
+    unregisteredSize: number;
+    largestArtifacts: ArtifactDetails[];
+}
+
+/** Length of a download period in days, ending today. */
+export type DownloadDays = 7 | 30 | 90 | 365;
+
+/** Downloads on one UTC day. */
+export interface DayDownloads {
+    /** Formatted as 2026-01-31. */
+    date: string;
+    count: number;
+}
+
+/** Downloads count fetches of the main file of a version, not of POMs, checksums, sources or javadoc. */
+export interface ArtifactDownloads {
+    /** All time. */
+    total: number;
+    periodTotal: number;
+    days: DownloadDays;
+    /** Every day of the period, oldest first, including days without downloads. */
+    daily: DayDownloads[];
+    /** Downloads in the period per version, most downloaded first. */
+    versions: { version: string; count: number }[];
+}
+
+export interface DownloadStats {
+    /** All time, including artifacts that are no longer registered. */
+    total: number;
+    periodTotal: number;
+    days: DownloadDays;
+    daily: DayDownloads[];
+    /** Most downloaded registered artifacts in the period. */
+    topArtifacts: (Artifact & { downloads: number })[];
 }
 
 export interface Deploy {
@@ -120,6 +172,7 @@ export interface UpdateUserRequest {
 export interface CreateTokenRequest {
     name: string;
     expiresAt: string | null;
+    scopes?: TokenScope[];
 }
 
 export interface CreateTeamRequest {
@@ -162,19 +215,72 @@ export interface BrowseEntry {
     type: BrowseEntryType;
     /** Only set for files. */
     size?: number;
-    /** Only set for files. */
     modifiedAt?: string;
     /** Set when the directory is the root of a registered artifact. */
     artifact?: Artifact;
 }
 
-/** A directory of the repository, containing only what the caller may read. */
+export interface BrowseArtifact {
+    artifact: Artifact;
+    latestVersion?: string;
+    versionCount: number;
+    updatedAt?: string;
+}
+
 export interface BrowseListing {
-    /** The normalized path without leading or trailing slashes, "" for the repository root. */
     path: string;
-    /** The artifact the path is inside of, if any. */
     artifact?: Artifact;
+    /** Only set for the root directory of an artifact. */
+    latestVersion?: string;
     entries: BrowseEntry[];
+}
+
+export interface Coordinates {
+    groupId: string;
+    artifactId: string;
+    version: string;
+}
+
+export interface PomLicense {
+    name: string;
+    url?: string;
+}
+
+export interface PomDeveloper {
+    id?: string;
+    name?: string;
+    email?: string;
+    url?: string;
+    organization?: string;
+}
+
+export interface PomDependency {
+    groupId: string;
+    artifactId: string;
+    /** May contain unresolved placeholders like ${spring.version}. */
+    version?: string;
+    scope: string;
+    type?: string;
+    classifier?: string;
+    optional: boolean;
+    /** Set when the dependency is an artifact of this repository. */
+    path?: string;
+}
+
+/** The POM of a version, merged with its parents. */
+export interface Pom extends Coordinates {
+    packaging: string;
+    name?: string;
+    description?: string;
+    url?: string;
+    parent?: Coordinates;
+    licenses: PomLicense[];
+    developers: PomDeveloper[];
+    scm?: { url?: string; tag?: string };
+    issueManagement?: { system?: string; url: string };
+    dependencies: PomDependency[];
+    /** Parents and imported BOMs that aren't in this repository. */
+    unresolved: string[];
 }
 
 export interface JavadocPackage {

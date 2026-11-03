@@ -1,5 +1,6 @@
 import { useCreateMyToken, useCreateUserToken } from '@/api/tokens.ts';
-import type { CreatedToken } from '@/api/types.ts';
+import type { CreatedToken, TokenScope } from '@/api/types.ts';
+import { ScopeEditor } from '@/components/tokens/ScopeEditor.tsx';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import {
@@ -12,8 +13,17 @@ import {
     DialogTitle,
     DialogTrigger,
 } from '@/components/ui/dialog';
-import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field';
+import {
+    Field,
+    FieldDescription,
+    FieldError,
+    FieldGroup,
+    FieldLabel,
+    FieldLegend,
+    FieldSet,
+} from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from '@/components/ui/input-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Spinner } from '@/components/ui/spinner';
@@ -33,6 +43,8 @@ const expiryOptions = [
 function CreateForm({ username, onCreated }: { username?: string; onCreated: (token: CreatedToken) => void }) {
     const [name, setName] = useState('');
     const [expiry, setExpiry] = useState('90');
+    const [restricted, setRestricted] = useState(false);
+    const [scopes, setScopes] = useState<TokenScope[]>([]);
     const createMine = useCreateMyToken();
     const createUsers = useCreateUserToken(username ?? '');
     const create = username === undefined ? createMine : createUsers;
@@ -40,7 +52,7 @@ function CreateForm({ username, onCreated }: { username?: string; onCreated: (to
     function onSubmit(e: FormEvent) {
         e.preventDefault();
         const expiresAt = expiry === 'never' ? null : new Date(Date.now() + Number(expiry) * DAY).toISOString();
-        create.mutate({ name: name.trim(), expiresAt }, { onSuccess: onCreated });
+        create.mutate({ name: name.trim(), expiresAt, scopes: restricted ? scopes : [] }, { onSuccess: onCreated });
     }
 
     return (
@@ -81,11 +93,40 @@ function CreateForm({ username, onCreated }: { username?: string; onCreated: (to
                         </SelectContent>
                     </Select>
                 </Field>
+                <FieldSet>
+                    <FieldLegend variant="label">Access</FieldLegend>
+                    <RadioGroup
+                        value={restricted ? 'restricted' : 'full'}
+                        onValueChange={(v) => setRestricted(v === 'restricted')}
+                    >
+                        <Field orientation="horizontal">
+                            <RadioGroupItem value="full" id="token-access-full" />
+                            <FieldLabel htmlFor="token-access-full" className="font-normal">
+                                Everything {username ?? 'you'} can access
+                            </FieldLabel>
+                        </Field>
+                        <Field orientation="horizontal">
+                            <RadioGroupItem value="restricted" id="token-access-restricted" />
+                            <FieldLabel htmlFor="token-access-restricted" className="font-normal">
+                                Only selected repository paths
+                            </FieldLabel>
+                        </Field>
+                    </RadioGroup>
+                    {restricted && <ScopeEditor scopes={scopes} onChange={setScopes} />}
+                    {!restricted && (
+                        <FieldDescription>
+                            Restrict tokens used in CI so a leaked token only exposes the artifacts it publishes.
+                        </FieldDescription>
+                    )}
+                </FieldSet>
                 {create.error && <FieldError>{create.error.message}</FieldError>}
             </FieldGroup>
             <DialogFooter>
                 <DialogClose render={<Button variant="outline" />}>Cancel</DialogClose>
-                <Button type="submit" disabled={create.isPending || !name.trim()}>
+                <Button
+                    type="submit"
+                    disabled={create.isPending || !name.trim() || (restricted && scopes.length === 0)}
+                >
                     {create.isPending && <Spinner />}
                     Create token
                 </Button>

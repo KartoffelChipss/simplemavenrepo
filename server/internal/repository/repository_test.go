@@ -5,6 +5,7 @@ import (
 	"errors"
 	"path/filepath"
 	"simplemavenrepo/internal/db"
+	"slices"
 	"testing"
 	"time"
 )
@@ -63,27 +64,27 @@ func TestRepositories(t *testing.T) {
 		t.Fatalf("unexpected effective grants: %+v", effective)
 	}
 
-	tok, plaintext, err := r.Tokens.Create(ctx, alice.ID, "laptop", nil)
+	tok, plaintext, err := r.Tokens.Create(ctx, alice.ID, "laptop", nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if u, err := r.Tokens.Authenticate(ctx, plaintext); err != nil || u.ID != alice.ID {
-		t.Fatalf("Authenticate = %+v, %v", u, err)
+	if u, scopes, err := r.Tokens.Authenticate(ctx, plaintext); err != nil || u.ID != alice.ID || len(scopes) != 0 {
+		t.Fatalf("Authenticate = %+v, %+v, %v", u, scopes, err)
 	}
-	if _, err := r.Tokens.Authenticate(ctx, plaintext+"x"); !errors.Is(err, ErrInvalidCredentials) {
+	if _, _, err := r.Tokens.Authenticate(ctx, plaintext+"x"); !errors.Is(err, ErrInvalidCredentials) {
 		t.Fatalf("wrong token: got %v, want ErrInvalidCredentials", err)
 	}
 	tokens, err := r.Tokens.ListForUser(ctx, alice.ID)
-	if err != nil || len(tokens) != 1 || tokens[0].LastUsedAt == nil {
+	if err != nil || len(tokens) != 1 || tokens[0].LastUsedAt == nil || tokens[0].Scopes == nil {
 		t.Fatalf("ListForUser = %+v, %v; want one used token", tokens, err)
 	}
 
 	past := time.Now().Add(-time.Hour)
-	_, expired, err := r.Tokens.Create(ctx, alice.ID, "old", &past)
+	_, expired, err := r.Tokens.Create(ctx, alice.ID, "old", &past, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := r.Tokens.Authenticate(ctx, expired); !errors.Is(err, ErrInvalidCredentials) {
+	if _, _, err := r.Tokens.Authenticate(ctx, expired); !errors.Is(err, ErrInvalidCredentials) {
 		t.Fatalf("expired token: got %v, want ErrInvalidCredentials", err)
 	}
 
@@ -95,7 +96,7 @@ func TestRepositories(t *testing.T) {
 	if err := r.Users.Delete(ctx, "alice"); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := r.Tokens.Authenticate(ctx, plaintext); !errors.Is(err, ErrInvalidCredentials) {
+	if _, _, err := r.Tokens.Authenticate(ctx, plaintext); !errors.Is(err, ErrInvalidCredentials) {
 		t.Fatalf("token of deleted user: got %v, want ErrInvalidCredentials", err)
 	}
 	if members, err := r.Teams.ListMembers(ctx, team.ID); err != nil || len(members) != 0 {
@@ -103,6 +104,61 @@ func TestRepositories(t *testing.T) {
 	}
 	if grants, _ := r.Grants.List(ctx, GrantFilter{}); len(grants) != 1 || grants[0].Team != "devs" {
 		t.Fatalf("grants after user deletion: %+v", grants)
+	}
+}
+
+func TestTokenScopes(t *testing.T) {
+	r := newTestRepos(t)
+	ctx := context.Background()
+
+	alice, err := r.Users.Create(ctx, "alice", false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	scopes := []TokenScope{
+		{Pattern: "com/example/lib/**", Permission: PermissionWrite},
+		{Pattern: "com/example/api/**", Permission: PermissionRead},
+		{Pattern: "com/example/lib/**", Permission: PermissionWrite},
+	}
+	tok, plaintext, err := r.Tokens.Create(ctx, alice.ID, "ci", nil, scopes)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []TokenScope{scopes[1], scopes[0]}
+	if !slices.Equal(tok.Scopes, want) {
+		t.Fatalf("created scopes = %+v; want %+v", tok.Scopes, want)
+	}
+	if _, got, err := r.Tokens.Authenticate(ctx, plaintext); err != nil || !slices.Equal(got, want) {
+		t.Fatalf("Authenticate scopes = %+v, %v; want %+v", got, err, want)
+	}
+
+	if _, _, err := r.Tokens.Create(ctx, alice.ID, "full", nil, nil); err != nil {
+		t.Fatal(err)
+	}
+	tokens, err := r.Tokens.ListForUser(ctx, alice.ID)
+	if err != nil || len(tokens) != 2 || !slices.Equal(tokens[0].Scopes, want) || len(tokens[1].Scopes) != 0 {
+		t.Fatalf("ListForUser = %+v, %v", tokens, err)
+	}
+
+	// Revoking a token removes its scopes
+	if err := r.Tokens.Delete(ctx, alice.ID, tok.ID); err != nil {
+		t.Fatal(err)
+	}
+	if byToken, err := queryScopes(ctx, r.Tokens.db, `SELECT token_id, pattern, permission FROM token_scopes`); err != nil || len(byToken) != 0 {
+		t.Fatalf("scopes after revoking: %+v, %v", byToken, err)
+	}
+}
+
+func TestTokenScopeAllows(t *testing.T) {
+	s := TokenScope{Pattern: "com/example/lib/**", Permission: PermissionRead}
+	if !s.Allows("com/example/lib/1.0/lib-1.0.jar", PermissionRead) {
+		t.Error("read scope should allow reading below its pattern")
+	}
+	if s.Allows("com/example/lib/1.0/lib-1.0.jar", PermissionWrite) {
+		t.Error("read scope must not allow writing")
+	}
+	if s.Allows("com/example/library/1.0/library-1.0.jar", PermissionRead) {
+		t.Error("scope must not match a sibling with the same prefix")
 	}
 }
 

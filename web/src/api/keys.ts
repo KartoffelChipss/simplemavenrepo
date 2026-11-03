@@ -4,6 +4,12 @@ export const aboutKeys = {
     all: ['about'] as const,
 };
 
+export const statsKeys = {
+    all: ['stats'] as const,
+    storage: () => [...statsKeys.all, 'storage'] as const,
+    downloads: (days: number) => [...statsKeys.all, 'downloads', days] as const,
+};
+
 export const settingsKeys = {
     all: ['settings'] as const,
 };
@@ -37,11 +43,15 @@ export const artifactKeys = {
     detail: (groupId: string, artifactId: string) => [...artifactKeys.all, 'detail', groupId, artifactId] as const,
     deploys: (groupId: string, artifactId: string, page: number) =>
         [...artifactKeys.detail(groupId, artifactId), 'deploys', page] as const,
+    downloads: (groupId: string, artifactId: string, days: number) =>
+        [...artifactKeys.detail(groupId, artifactId), 'downloads', days] as const,
 };
 
 export const browseKeys = {
     all: ['browse'] as const,
-    path: (path: string) => [...browseKeys.all, path] as const,
+    list: () => [...browseKeys.all, 'list'] as const,
+    path: (path: string) => [...browseKeys.all, 'path', path] as const,
+    pom: (versionPath: string) => [...browseKeys.all, 'pom', versionPath] as const,
 };
 
 export const javadocKeys = {

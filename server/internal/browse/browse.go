@@ -31,9 +31,10 @@ type Entry struct {
 
 type Listing struct {
 	// Path is the normalized path, without leading or trailing slashes. The repository root is "".
-	Path     string               `json:"path"`
-	Artifact *repository.Artifact `json:"artifact,omitempty"`
-	Entries  []Entry              `json:"entries"`
+	Path          string               `json:"path"`
+	Artifact      *repository.Artifact `json:"artifact,omitempty"`
+	LatestVersion string               `json:"latestVersion,omitempty"`
+	Entries       []Entry              `json:"entries"`
 }
 
 func List(fsys fs.FS, artifacts []repository.Artifact, canRead func(repository.Artifact) bool, p string) (Listing, error) {
@@ -42,26 +43,16 @@ func List(fsys fs.FS, artifacts []repository.Artifact, canRead func(repository.A
 		return Listing{}, ErrNotFound
 	}
 
-	var readable []repository.Artifact
-	for _, a := range artifacts {
-		if canRead(a) {
-			readable = append(readable, a)
-		}
-	}
-
 	var owner *repository.Artifact
 	for _, a := range artifacts {
 		if (p == a.Path || strings.HasPrefix(p, a.Path+"/")) && (owner == nil || len(a.Path) > len(owner.Path)) {
 			owner = &a
 		}
 	}
-	if owner != nil {
-		if !canRead(*owner) {
-			return Listing{}, ErrNotFound
-		}
-		return listArtifactDir(fsys, artifacts, canRead, *owner, p)
+	if owner == nil || !canRead(*owner) {
+		return Listing{}, ErrNotFound
 	}
-	return listGroups(readable, p)
+	return listArtifactDir(fsys, artifacts, canRead, *owner, p)
 }
 
 // normalize cleans p and rejects hidden segments, which hold files that are still being uploaded.
@@ -78,39 +69,11 @@ func normalize(p string) (string, bool) {
 	return p, true
 }
 
-func listGroups(readable []repository.Artifact, p string) (Listing, error) {
-	prefix := ""
-	if p != "" {
-		prefix = p + "/"
-	}
-
-	listing := Listing{Path: p, Entries: []Entry{}}
-	seen := map[string]bool{}
-	for _, a := range readable {
-		rest, found := strings.CutPrefix(a.Path, prefix)
-		if !found {
-			continue
-		}
-		name, _, _ := strings.Cut(rest, "/")
-		if seen[name] {
-			continue
-		}
-		seen[name] = true
-		entry := Entry{Name: name, Type: TypeDirectory}
-		if rest == name {
-			entry.Artifact = &a
-		}
-		listing.Entries = append(listing.Entries, entry)
-	}
-	if len(listing.Entries) == 0 {
-		return Listing{}, ErrNotFound
-	}
-	slices.SortFunc(listing.Entries, func(x, y Entry) int { return strings.Compare(x.Name, y.Name) })
-	return listing, nil
-}
-
 func listArtifactDir(fsys fs.FS, artifacts []repository.Artifact, canRead func(repository.Artifact) bool, owner repository.Artifact, p string) (Listing, error) {
 	listing := Listing{Path: p, Artifact: &owner, Entries: []Entry{}}
+	if p == owner.Path {
+		listing.LatestVersion = summarize(fsys, owner).LatestVersion
+	}
 
 	dirEntries, err := fs.ReadDir(fsys, p)
 	if errors.Is(err, fs.ErrNotExist) && p == owner.Path {
@@ -130,7 +93,12 @@ func listArtifactDir(fsys fs.FS, artifacts []repository.Artifact, canRead func(r
 		if strings.HasPrefix(d.Name(), ".") {
 			continue
 		}
-		entry := Entry{Name: d.Name(), Type: TypeFile}
+		info, err := d.Info()
+		if err != nil {
+			continue
+		}
+		modified := info.ModTime().UTC()
+		entry := Entry{Name: d.Name(), Type: TypeFile, ModifiedAt: &modified}
 		if d.IsDir() {
 			entry.Type = TypeDirectory
 			if a, ok := nested[path.Join(p, d.Name())]; ok {
@@ -140,12 +108,8 @@ func listArtifactDir(fsys fs.FS, artifacts []repository.Artifact, canRead func(r
 				entry.Artifact = &a
 			}
 		} else {
-			info, err := d.Info()
-			if err != nil {
-				continue
-			}
-			size, modified := info.Size(), info.ModTime().UTC()
-			entry.Size, entry.ModifiedAt = &size, &modified
+			size := info.Size()
+			entry.Size = &size
 		}
 		listing.Entries = append(listing.Entries, entry)
 	}

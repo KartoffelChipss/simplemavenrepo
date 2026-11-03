@@ -25,6 +25,7 @@ export function useJavadoc(path: string) {
 }
 
 export function javadocPageUrl(versionPath: string, page?: string) {
-    const url = `/docs/${encodePath(versionPath)}`;
-    return page ? `${url}?page=${encodeURIComponent(page)}` : url;
+    const params = new URLSearchParams({ tab: 'javadoc' });
+    if (page) params.set('page', page);
+    return `/browse/${encodePath(versionPath)}?${params}`;
 }

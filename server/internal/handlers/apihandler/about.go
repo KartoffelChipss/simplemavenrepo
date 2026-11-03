@@ -13,11 +13,11 @@ var startedAt = time.Now()
 
 func (h *handler) about(c fiber.Ctx) error {
 	res := fiber.Map{"status": "ok"}
-	user, loggedIn, err := auth.IdentifyOptional(c, h.repos)
+	_, loggedIn, err := auth.IdentifyOptional(c, h.repos)
 	if err != nil {
 		return err
 	}
-	if loggedIn && user.IsAdmin {
+	if loggedIn && auth.IsAdmin(c) {
 		version := config.GetVersion()
 		if version == "" {
 			version = "dev"

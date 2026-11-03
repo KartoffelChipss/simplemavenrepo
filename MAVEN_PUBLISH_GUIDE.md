@@ -7,6 +7,10 @@ Downloading a **private** artifact requires a token with a **read** (or write) g
 `<server>` credentials as below, with an `<id>` matching the repository in their `<repositories>`. Public artifacts
 can be downloaded without a token.
 
+For CI, create a token restricted to the artifacts it publishes: choose **Only selected repository paths** when
+creating it and add e.g. `com/example/lib` with read & write. A restricted token never gets more access than its user,
+and it can only be used for the repository, not for the management API.
+
 ## Maven
 
 Add the server to `~/.m2/settings.xml`. The `<id>` must match the repository id in the `pom.xml`.
@@ -91,7 +95,7 @@ gradle publish
 | Status | Meaning |
 |---|---|
 | `401 Unauthorized` | No credentials were sent, the token is wrong or expired, or the username doesn't own the token. Check that the server `<id>` (Maven) or repository `name` (Gradle) matches. |
-| `403 Forbidden` | The token is valid but no grant of the user or their teams covers the artifact. Check `GET /api/me`. |
+| `403 Forbidden` | The token is valid but no grant of the user or their teams covers the artifact, or the token is restricted to other paths. Check `GET /api/me` and the token's access under **Tokens**. |
 | `404 Not Found` | The artifact isn't registered. Maven reports this as "Could not find artifact". |
 | `409 Conflict` | This release version is already published and releases are immutable. Bump the version, or enable "Allow overwriting releases" on the artifact. Snapshots can always be redeployed. |
 | `415 Unsupported Media Type` | Only `.jar`, `.pom`, `.module`, `.aar`, `.klib`, `.war`, `.ear`, `.zip` and `.tar.gz` files are stored. Signatures (`.asc`) are rejected, so publish without the `signing` plugin. |

@@ -1,20 +1,31 @@
 import { request, seg } from '@/api/client.ts';
-import { artifactKeys, browseKeys } from '@/api/keys.ts';
-import type { Artifact, CreateArtifactRequest, DeployPage, UpdateArtifactRequest } from '@/api/types.ts';
+import { artifactKeys, browseKeys, statsKeys } from '@/api/keys.ts';
+import type {
+    Artifact,
+    ArtifactDetails,
+    ArtifactDownloads,
+    CreateArtifactRequest,
+    DeployPage,
+    DownloadDays,
+    UpdateArtifactRequest,
+} from '@/api/types.ts';
 import { keepPreviousData, queryOptions, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 const artifactPath = (groupId: string, artifactId: string) => `/artifacts/${seg(groupId)}/${seg(artifactId)}`;
 
 export const listArtifacts = (signal?: AbortSignal) => request<Artifact[]>('GET', '/artifacts', undefined, signal);
 export const getArtifact = (groupId: string, artifactId: string, signal?: AbortSignal) =>
-    request<Artifact>('GET', artifactPath(groupId, artifactId), undefined, signal);
+    request<ArtifactDetails>('GET', artifactPath(groupId, artifactId), undefined, signal);
 export const createArtifact = (body: CreateArtifactRequest) => request<Artifact>('POST', '/artifacts', body);
 export const updateArtifact = (groupId: string, artifactId: string, body: UpdateArtifactRequest) =>
-    request<Artifact>('PATCH', artifactPath(groupId, artifactId), body);
+    request<ArtifactDetails>('PATCH', artifactPath(groupId, artifactId), body);
 export const deleteArtifact = (groupId: string, artifactId: string, deleteFiles: boolean) =>
     request<void>('DELETE', `${artifactPath(groupId, artifactId)}${deleteFiles ? '?deleteFiles=true' : ''}`);
 export const listDeploys = (groupId: string, artifactId: string, page: number, signal?: AbortSignal) =>
     request<DeployPage>('GET', `${artifactPath(groupId, artifactId)}/deploys?page=${page}`, undefined, signal);
+
+export const getArtifactDownloads = (groupId: string, artifactId: string, days: DownloadDays, signal?: AbortSignal) =>
+    request<ArtifactDownloads>('GET', `${artifactPath(groupId, artifactId)}/downloads?days=${days}`, undefined, signal);
 
 interface ArtifactId {
     groupId: string;
@@ -42,6 +53,14 @@ export const deploysQuery = ({ groupId, artifactId }: ArtifactId, page: number) 
         placeholderData: keepPreviousData,
     });
 
+export const artifactDownloadsQuery = ({ groupId, artifactId }: ArtifactId, days: DownloadDays) =>
+    queryOptions({
+        queryKey: artifactKeys.downloads(groupId, artifactId, days),
+        queryFn: ({ signal }) => getArtifactDownloads(groupId, artifactId, days, signal),
+        // Keep showing the current period while the next one loads so the chart doesn't jump
+        placeholderData: keepPreviousData,
+    });
+
 export function useArtifacts() {
     return useQuery(artifactsQuery());
 }
@@ -54,6 +73,10 @@ export function useDeploys(id: ArtifactId, page: number) {
     return useQuery(deploysQuery(id, page));
 }
 
+export function useArtifactDownloads(id: ArtifactId, days: DownloadDays) {
+    return useQuery(artifactDownloadsQuery(id, days));
+}
+
 export function useCreateArtifact() {
     const queryClient = useQueryClient();
     return useMutation({
@@ -62,6 +85,7 @@ export function useCreateArtifact() {
             Promise.all([
                 queryClient.invalidateQueries({ queryKey: artifactKeys.list() }),
                 queryClient.invalidateQueries({ queryKey: browseKeys.all }),
+                queryClient.invalidateQueries({ queryKey: statsKeys.all }),
             ]),
     });
 }
@@ -91,6 +115,7 @@ export function useDeleteArtifact() {
             return Promise.all([
                 queryClient.invalidateQueries({ queryKey: artifactKeys.list() }),
                 queryClient.invalidateQueries({ queryKey: browseKeys.all }),
+                queryClient.invalidateQueries({ queryKey: statsKeys.all }),
             ]);
         },
     });

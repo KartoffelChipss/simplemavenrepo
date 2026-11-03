@@ -76,14 +76,14 @@ func (h *handler) getJavadoc(c fiber.Ctx) error {
 	}
 
 	if !artifact.Public {
-		user, loggedIn, err := auth.IdentifyOptional(c, h.repos)
+		_, loggedIn, err := auth.IdentifyOptional(c, h.repos)
 		if err != nil {
 			return err
 		}
 		if !loggedIn {
 			return notFound
 		}
-		allowed, err := auth.Authorize(c.Context(), h.repos.Grants, user, p, repository.PermissionRead)
+		allowed, err := auth.Authorize(c, h.repos.Grants, p, repository.PermissionRead)
 		if err != nil {
 			return repoError(err, "grant")
 		}

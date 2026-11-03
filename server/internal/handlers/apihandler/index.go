@@ -47,11 +47,13 @@ func RegisterApiRoutes(app *fiber.App, repos repository.Repositories, root *os.R
 	api.Get("/about", h.about)
 	api.Post("/auth/login", loginLimiter, h.login)
 	api.Post("/auth/logout", h.logout)
-	api.Get("/browse", h.browseRepository)
+	api.Get("/browse", h.listBrowsableArtifacts)
 	api.Get("/browse/*", h.browseRepository)
+	api.Get("/pom/*", h.getPom)
 	api.Get("/javadoc", h.listJavadoc)
 	api.Get("/javadoc/*", h.getJavadoc)
 	api.Get("/badge/:groupId/:artifactId", h.getBadge)
+	api.Get("/badge/:groupId/:artifactId/downloads", h.getDownloadsBadge)
 	api.Get("/settings", h.getSettings)
 
 	authenticate := auth.Authenticate(repos)
@@ -87,6 +89,8 @@ func RegisterApiRoutes(app *fiber.App, repos repository.Repositories, root *os.R
 	grants.Delete("/:id", h.deleteGrant)
 
 	api.Patch("/settings", authenticate, auth.RequireAdmin, h.updateSettings)
+	api.Get("/stats/storage", authenticate, auth.RequireAdmin, h.getStorageStats)
+	api.Get("/stats/downloads", authenticate, auth.RequireAdmin, h.getDownloadStats)
 
 	artifacts := api.Group("/artifacts", authenticate, auth.RequireAdmin)
 	artifacts.Get("", h.listArtifacts)
@@ -95,4 +99,5 @@ func RegisterApiRoutes(app *fiber.App, repos repository.Repositories, root *os.R
 	artifacts.Patch("/:groupId/:artifactId", h.updateArtifact)
 	artifacts.Delete("/:groupId/:artifactId", h.deleteArtifact)
 	artifacts.Get("/:groupId/:artifactId/deploys", h.listDeploys)
+	artifacts.Get("/:groupId/:artifactId/downloads", h.getArtifactDownloads)
 }

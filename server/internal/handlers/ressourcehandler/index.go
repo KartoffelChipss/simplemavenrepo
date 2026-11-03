@@ -34,5 +34,5 @@ func RegisterRessourceRoutes(app *fiber.App, repos repository.Repositories) {
 	if err != nil {
 		log.Fatalf("Cannot open repository path: %v", err)
 	}
-	releasesGroup.Put("/*", auth.Authenticate(repos), newUploadHandler(root, repos))
+	releasesGroup.Put("/*", auth.AuthenticateScoped(repos), newUploadHandler(root, repos))
 }

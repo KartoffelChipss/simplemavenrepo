@@ -43,7 +43,7 @@ func bootstrapAdmin(repos repository.Repositories) error {
 	if err := repos.Users.SetPassword(ctx, admin.ID, password); err != nil {
 		return err
 	}
-	_, secret, err := repos.Tokens.Create(ctx, admin.ID, "bootstrap", nil)
+	_, secret, err := repos.Tokens.Create(ctx, admin.ID, "bootstrap", nil, nil)
 	if err != nil {
 		return err
 	}

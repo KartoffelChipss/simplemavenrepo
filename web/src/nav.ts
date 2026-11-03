@@ -2,6 +2,7 @@ import type { User } from '@/api/types.ts';
 import {
     BookOpen,
     Boxes,
+    ChartColumn,
     FolderTree,
     House,
     KeyRound,
@@ -47,6 +48,7 @@ export const navGroups: NavGroup[] = [
             { title: 'Artifacts', to: '/artifacts', icon: Boxes },
             { title: 'Users', to: '/users', icon: UserRound },
             { title: 'Teams', to: '/teams', icon: UserGroup },
+            { title: 'Stats', to: '/stats', icon: ChartColumn },
             { title: 'Settings', to: '/settings', icon: Settings },
         ],
     },
