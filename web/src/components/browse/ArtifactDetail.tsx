@@ -2,7 +2,7 @@ import { useMe } from '@/api/auth.ts';
 import { browseQuery, useBrowse, usePom } from '@/api/browse.ts';
 import { isApiError } from '@/api/client.ts';
 import type { Artifact, BrowseEntry, Pom, PomDependency } from '@/api/types.ts';
-import { artifactSettingsUrl } from '@/components/artifacts/urls.ts';
+import { artifactSettingsUrl, useBackState } from '@/components/artifacts/urls.ts';
 import { EntryTable } from '@/components/browse/EntryTable.tsx';
 import { browseUrl, isJavadocJar } from '@/components/browse/paths.ts';
 import { UsageSnippets } from '@/components/browse/UsageSnippets.tsx';
@@ -297,6 +297,7 @@ function DependenciesTable({ dependencies }: { dependencies: PomDependency[] }) 
 export function ArtifactDetail({ artifact, version: selected }: { artifact: Artifact; version?: string }) {
     const { data: me } = useMe();
     const navigate = useNavigate();
+    const backState = useBackState(artifact.artifactId);
     const [searchParams, setSearchParams] = useSearchParams();
     const tabParam = searchParams.get('tab');
     const tab: Tab = TABS.find((t) => t === tabParam) ?? 'overview';
@@ -371,7 +372,7 @@ export function ArtifactDetail({ artifact, version: selected }: { artifact: Arti
                         <Button
                             variant="outline"
                             size="sm"
-                            render={<Link to={artifactSettingsUrl(artifact)} />}
+                            render={<Link to={artifactSettingsUrl(artifact)} state={backState} />}
                             nativeButton={false}
                         >
                             <Settings />

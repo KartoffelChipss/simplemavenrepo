@@ -1,6 +1,6 @@
 import { useStorageStats } from '@/api/stats.ts';
 import type { StorageStats } from '@/api/types.ts';
-import { artifactSettingsUrl } from '@/components/artifacts/urls.ts';
+import { artifactSettingsUrl, useBackState } from '@/components/artifacts/urls.ts';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatBytes } from '@/lib/format.ts';
@@ -17,6 +17,7 @@ function Stat({ label, value, hint }: { label: string; value: string; hint?: str
 }
 
 function LargestArtifacts({ stats }: { stats: StorageStats }) {
+    const backState = useBackState('Stats');
     const artifacts = stats.largestArtifacts.filter((a) => a.size > 0);
     if (artifacts.length === 0) {
         return <p className="text-muted-foreground">No artifact has been published yet.</p>;
@@ -31,6 +32,7 @@ function LargestArtifacts({ stats }: { stats: StorageStats }) {
                         <div className="flex items-baseline justify-between gap-4">
                             <Link
                                 to={artifactSettingsUrl(artifact)}
+                                state={backState}
                                 className="min-w-0 truncate font-mono text-sm hover:underline"
                             >
                                 <span className="text-muted-foreground">{artifact.groupId}:</span>

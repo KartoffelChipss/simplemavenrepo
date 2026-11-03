@@ -1,6 +1,6 @@
 import { useDownloadStats } from '@/api/stats.ts';
 import type { DownloadDays } from '@/api/types.ts';
-import { artifactSettingsUrl } from '@/components/artifacts/urls.ts';
+import { artifactSettingsUrl, useBackState } from '@/components/artifacts/urls.ts';
 import { DOWNLOADS_DESCRIPTION } from '@/components/downloads/DownloadsCard.tsx';
 import { DownloadsChart, DownloadTotals, PeriodSelect } from '@/components/downloads/DownloadsChart.tsx';
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,6 +10,7 @@ import { Link } from 'react-router';
 
 /** Downloads of all artifacts over time and the most downloaded ones. */
 export function DownloadStatsSection() {
+    const backState = useBackState('Stats');
     const [days, setDays] = useState<DownloadDays>(30);
     const { data, error, isPending } = useDownloadStats(days);
 
@@ -42,6 +43,7 @@ export function DownloadStatsSection() {
                                         >
                                             <Link
                                                 to={artifactSettingsUrl(artifact)}
+                                                state={backState}
                                                 className="min-w-0 truncate font-mono text-sm hover:underline"
                                             >
                                                 <span className="text-muted-foreground">{artifact.groupId}:</span>

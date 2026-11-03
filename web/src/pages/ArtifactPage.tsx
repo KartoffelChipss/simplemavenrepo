@@ -4,7 +4,7 @@ import type { Artifact } from '@/api/types.ts';
 import { DeployLog } from '@/components/artifacts/DeployLog.tsx';
 import { DownloadsCard } from '@/components/downloads/DownloadsCard.tsx';
 import { ReadmeBadge } from '@/components/artifacts/ReadmeBadge.tsx';
-import { artifactBrowseUrl } from '@/components/artifacts/urls.ts';
+import { artifactBrowseUrl, type BackTo } from '@/components/artifacts/urls.ts';
 import { MAX_DESCRIPTION_LENGTH } from '@/components/artifacts/validation.ts';
 import { PageHeader } from '@/components/PageHeader.tsx';
 import {
@@ -31,7 +31,7 @@ import { formatBytes, formatDate } from '@/lib/format.ts';
 import { usePageTitle } from '@/title.ts';
 import { ArrowLeft, FolderTree } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
-import { Link, useNavigate, useParams } from 'react-router';
+import { Link, useLocation, useNavigate, useParams } from 'react-router';
 
 const coordinates = (a: Artifact) => `${a.groupId}:${a.artifactId}`;
 
@@ -221,15 +221,16 @@ export function ArtifactPage() {
     const { groupId = '', artifactId = '' } = useParams();
     const { data: artifact, error, isPending } = useArtifact({ groupId, artifactId });
     usePageTitle(`${groupId}:${artifactId}`);
+    const back = (useLocation().state as { back?: BackTo } | null)?.back ?? { to: '/artifacts', label: 'Artifacts' };
 
     return (
         <>
             <Link
-                to="/artifacts"
+                to={back.to}
                 className="flex w-fit items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
             >
                 <ArrowLeft className="size-4" />
-                Artifacts
+                {back.label}
             </Link>
 
             {isPending && (
