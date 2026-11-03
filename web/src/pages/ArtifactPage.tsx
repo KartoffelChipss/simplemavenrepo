@@ -25,15 +25,24 @@ import { Field, FieldContent, FieldDescription, FieldError, FieldGroup, FieldLab
 import { Skeleton } from '@/components/ui/skeleton';
 import { Spinner } from '@/components/ui/spinner';
 import { Switch } from '@/components/ui/switch';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from '@/components/ui/toast';
 import { formatBytes, formatDate } from '@/lib/format.ts';
 import { usePageTitle } from '@/title.ts';
 import { ArrowLeft, FolderTree } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
-import { Link, useLocation, useNavigate, useParams } from 'react-router';
+import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router';
 
 const coordinates = (a: Artifact) => `${a.groupId}:${a.artifactId}`;
+
+const TABS = [
+    { value: 'settings', label: 'Settings' },
+    { value: 'downloads', label: 'Downloads' },
+    { value: 'deploys', label: 'Deploys' },
+    { value: 'badge', label: 'Badge' },
+] as const;
+type Tab = (typeof TABS)[number]['value'];
 
 function SettingsCard({ artifact }: { artifact: Artifact }) {
     const [description, setDescription] = useState(artifact.description ?? '');
@@ -221,7 +230,14 @@ export function ArtifactPage() {
     const { groupId = '', artifactId = '' } = useParams();
     const { data: artifact, error, isPending } = useArtifact({ groupId, artifactId });
     usePageTitle(`${groupId}:${artifactId}`);
-    const back = (useLocation().state as { back?: BackTo } | null)?.back ?? { to: '/artifacts', label: 'Artifacts' };
+    const location = useLocation();
+    const back = (location.state as { back?: BackTo } | null)?.back ?? { to: '/artifacts', label: 'Artifacts' };
+    const [searchParams, setSearchParams] = useSearchParams();
+    const tabParam = searchParams.get('tab');
+    const tab: Tab = TABS.find((t) => t.value === tabParam)?.value ?? 'settings';
+
+    const setTab = (t: string) =>
+        setSearchParams(t === 'settings' ? {} : { tab: t }, { replace: true, state: location.state as unknown });
 
     return (
         <>
@@ -260,16 +276,33 @@ export function ArtifactPage() {
                             Browse files
                         </Button>
                     </div>
-                    <div className="grid items-start gap-4 xl:grid-cols-2">
-                        <SettingsCard
-                            key={`${artifact.description}|${artifact.public}|${artifact.allowReleaseOverwrite}`}
-                            artifact={artifact}
-                        />
-                        <BadgeCard artifact={artifact} />
-                    </div>
-                    <DownloadsCard artifact={artifact} />
-                    <DeployLogCard artifact={artifact} />
-                    <DeleteArtifactCard artifact={artifact} />
+                    <Tabs value={tab} onValueChange={setTab} className="gap-4">
+                        <TabsList variant="line" className="w-full justify-start border-b">
+                            {TABS.map((t) => (
+                                <TabsTrigger key={t.value} value={t.value} className="flex-none">
+                                    {t.label}
+                                </TabsTrigger>
+                            ))}
+                        </TabsList>
+                        <TabsContent value="settings" keepMounted>
+                            <div className="flex max-w-3xl flex-col gap-4">
+                                <SettingsCard
+                                    key={`${artifact.description}|${artifact.public}|${artifact.allowReleaseOverwrite}`}
+                                    artifact={artifact}
+                                />
+                                <DeleteArtifactCard artifact={artifact} />
+                            </div>
+                        </TabsContent>
+                        <TabsContent value="downloads">
+                            <DownloadsCard artifact={artifact} />
+                        </TabsContent>
+                        <TabsContent value="deploys">
+                            <DeployLogCard artifact={artifact} />
+                        </TabsContent>
+                        <TabsContent value="badge" className="max-w-3xl">
+                            <BadgeCard artifact={artifact} />
+                        </TabsContent>
+                    </Tabs>
                 </>
             )}
         </>
