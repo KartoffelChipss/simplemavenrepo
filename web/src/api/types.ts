@@ -215,7 +215,6 @@ export interface BrowseEntry {
     type: BrowseEntryType;
     /** Only set for files. */
     size?: number;
-    /** Only set for files. */
     modifiedAt?: string;
     /** Set when the directory is the root of a registered artifact. */
     artifact?: Artifact;
@@ -231,7 +230,57 @@ export interface BrowseArtifact {
 export interface BrowseListing {
     path: string;
     artifact?: Artifact;
+    /** Only set for the root directory of an artifact. */
+    latestVersion?: string;
     entries: BrowseEntry[];
+}
+
+export interface Coordinates {
+    groupId: string;
+    artifactId: string;
+    version: string;
+}
+
+export interface PomLicense {
+    name: string;
+    url?: string;
+}
+
+export interface PomDeveloper {
+    id?: string;
+    name?: string;
+    email?: string;
+    url?: string;
+    organization?: string;
+}
+
+export interface PomDependency {
+    groupId: string;
+    artifactId: string;
+    /** May contain unresolved placeholders like ${spring.version}. */
+    version?: string;
+    scope: string;
+    type?: string;
+    classifier?: string;
+    optional: boolean;
+    /** Set when the dependency is an artifact of this repository. */
+    path?: string;
+}
+
+/** The POM of a version, merged with its parents. */
+export interface Pom extends Coordinates {
+    packaging: string;
+    name?: string;
+    description?: string;
+    url?: string;
+    parent?: Coordinates;
+    licenses: PomLicense[];
+    developers: PomDeveloper[];
+    scm?: { url?: string; tag?: string };
+    issueManagement?: { system?: string; url: string };
+    dependencies: PomDependency[];
+    /** Parents and imported BOMs that aren't in this repository. */
+    unresolved: string[];
 }
 
 export interface JavadocPackage {

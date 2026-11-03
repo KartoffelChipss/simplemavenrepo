@@ -51,6 +51,7 @@ export const browseKeys = {
     all: ['browse'] as const,
     list: () => [...browseKeys.all, 'list'] as const,
     path: (path: string) => [...browseKeys.all, 'path', path] as const,
+    pom: (versionPath: string) => [...browseKeys.all, 'pom', versionPath] as const,
 };
 
 export const javadocKeys = {

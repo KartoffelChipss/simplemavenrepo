@@ -31,9 +31,10 @@ type Entry struct {
 
 type Listing struct {
 	// Path is the normalized path, without leading or trailing slashes. The repository root is "".
-	Path     string               `json:"path"`
-	Artifact *repository.Artifact `json:"artifact,omitempty"`
-	Entries  []Entry              `json:"entries"`
+	Path          string               `json:"path"`
+	Artifact      *repository.Artifact `json:"artifact,omitempty"`
+	LatestVersion string               `json:"latestVersion,omitempty"`
+	Entries       []Entry              `json:"entries"`
 }
 
 func List(fsys fs.FS, artifacts []repository.Artifact, canRead func(repository.Artifact) bool, p string) (Listing, error) {
@@ -70,6 +71,9 @@ func normalize(p string) (string, bool) {
 
 func listArtifactDir(fsys fs.FS, artifacts []repository.Artifact, canRead func(repository.Artifact) bool, owner repository.Artifact, p string) (Listing, error) {
 	listing := Listing{Path: p, Artifact: &owner, Entries: []Entry{}}
+	if p == owner.Path {
+		listing.LatestVersion = summarize(fsys, owner).LatestVersion
+	}
 
 	dirEntries, err := fs.ReadDir(fsys, p)
 	if errors.Is(err, fs.ErrNotExist) && p == owner.Path {
@@ -89,7 +93,12 @@ func listArtifactDir(fsys fs.FS, artifacts []repository.Artifact, canRead func(r
 		if strings.HasPrefix(d.Name(), ".") {
 			continue
 		}
-		entry := Entry{Name: d.Name(), Type: TypeFile}
+		info, err := d.Info()
+		if err != nil {
+			continue
+		}
+		modified := info.ModTime().UTC()
+		entry := Entry{Name: d.Name(), Type: TypeFile, ModifiedAt: &modified}
 		if d.IsDir() {
 			entry.Type = TypeDirectory
 			if a, ok := nested[path.Join(p, d.Name())]; ok {
@@ -99,12 +108,8 @@ func listArtifactDir(fsys fs.FS, artifacts []repository.Artifact, canRead func(r
 				entry.Artifact = &a
 			}
 		} else {
-			info, err := d.Info()
-			if err != nil {
-				continue
-			}
-			size, modified := info.Size(), info.ModTime().UTC()
-			entry.Size, entry.ModifiedAt = &size, &modified
+			size := info.Size()
+			entry.Size = &size
 		}
 		listing.Entries = append(listing.Entries, entry)
 	}

@@ -13,10 +13,10 @@ import (
 )
 
 type Summary struct {
-	Artifact repository.Artifact `json:"artifact"`
-	LatestVersion string `json:"latestVersion,omitempty"`
-	VersionCount  int    `json:"versionCount"`
-	UpdatedAt *time.Time `json:"updatedAt,omitempty"`
+	Artifact      repository.Artifact `json:"artifact"`
+	LatestVersion string              `json:"latestVersion,omitempty"`
+	VersionCount  int                 `json:"versionCount"`
+	UpdatedAt     *time.Time          `json:"updatedAt,omitempty"`
 }
 
 func Artifacts(fsys fs.FS, artifacts []repository.Artifact, canRead func(repository.Artifact) bool) []Summary {

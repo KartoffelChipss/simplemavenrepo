@@ -1,7 +1,7 @@
 import { request } from '@/api/client.ts';
 import { browseKeys } from '@/api/keys.ts';
-import type { BrowseArtifact, BrowseListing } from '@/api/types.ts';
-import { keepPreviousData, queryOptions, useQuery } from '@tanstack/react-query';
+import type { BrowseArtifact, BrowseListing, Pom } from '@/api/types.ts';
+import { keepPreviousData, queryOptions, skipToken, useQuery } from '@tanstack/react-query';
 
 const encodePath = (path: string) => path.split('/').filter(Boolean).map(encodeURIComponent).join('/');
 
@@ -22,6 +22,16 @@ export const browseQuery = (path: string) =>
         queryKey: browseKeys.path(path),
         queryFn: ({ signal }) => browse(path, signal),
     });
+
+export const getPom = (versionPath: string, signal?: AbortSignal) =>
+    request<Pom>('GET', `/pom/${encodePath(versionPath)}`, undefined, signal);
+
+export function usePom(versionPath: string | undefined) {
+    return useQuery({
+        queryKey: browseKeys.pom(versionPath ?? ''),
+        queryFn: versionPath ? ({ signal }) => getPom(versionPath, signal) : skipToken,
+    });
+}
 
 export function useBrowse(path: string) {
     return useQuery({ ...browseQuery(path), placeholderData: keepPreviousData });

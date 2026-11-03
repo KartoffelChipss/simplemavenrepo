@@ -49,6 +49,7 @@ func RegisterApiRoutes(app *fiber.App, repos repository.Repositories, root *os.R
 	api.Post("/auth/logout", h.logout)
 	api.Get("/browse", h.listBrowsableArtifacts)
 	api.Get("/browse/*", h.browseRepository)
+	api.Get("/pom/*", h.getPom)
 	api.Get("/javadoc", h.listJavadoc)
 	api.Get("/javadoc/*", h.getJavadoc)
 	api.Get("/badge/:groupId/:artifactId", h.getBadge)
