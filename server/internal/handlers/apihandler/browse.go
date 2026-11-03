@@ -26,7 +26,21 @@ func (h *handler) readFilter(c fiber.Ctx) (func(repository.Artifact) bool, error
 	}, nil
 }
 
-// browseRepository lists a directory of the repository.
+// listBrowsableArtifacts lists the artifacts the caller can read, with their latest version.
+func (h *handler) listBrowsableArtifacts(c fiber.Ctx) error {
+	canRead, err := h.readFilter(c)
+	if err != nil {
+		return err
+	}
+	artifacts, err := h.repos.Artifacts.List(c.Context())
+	if err != nil {
+		return repoError(err, "artifact")
+	}
+	c.Set(fiber.HeaderCacheControl, "no-store")
+	return c.JSON(browse.Artifacts(h.repoFS, artifacts, canRead))
+}
+
+// browseRepository lists a directory inside an artifact.
 func (h *handler) browseRepository(c fiber.Ctx) error {
 	canRead, err := h.readFilter(c)
 	if err != nil {

@@ -41,9 +41,9 @@ func TestList(t *testing.T) {
 		want    []string
 		missing bool
 	}{
-		{name: "root", canRead: anonymous, path: "", want: []string{"com", "org"}},
-		{name: "group hides private and unregistered", canRead: anonymous, path: "org/example", want: []string{"lib"}},
-		{name: "group with read access", canRead: everyone, path: "/org/example/", want: []string{"lib", "secret"}},
+		{name: "root", canRead: anonymous, path: "", missing: true},
+		{name: "group", canRead: everyone, path: "org/example", missing: true},
+		{name: "path is normalized", canRead: anonymous, path: "/org/example/lib/1.10/", want: []string{"lib-1.10.jar"}},
 		{name: "versions newest first, then files", canRead: anonymous, path: "org/example/lib", want: []string{"1.10", "1.10-SNAPSHOT", "1.9", "maven-metadata.xml"}},
 		{name: "upload temp files are hidden", canRead: anonymous, path: "org/example/lib/1.10", want: []string{"lib-1.10.jar"}},
 		{name: "registered without files", canRead: anonymous, path: "com/empty/new", want: nil},
@@ -55,7 +55,6 @@ func TestList(t *testing.T) {
 		{name: "missing version", canRead: anonymous, path: "org/example/lib/2.0", missing: true},
 		{name: "traversal", canRead: anonymous, path: "org/example/lib/../secret", missing: true},
 		{name: "hidden segment", canRead: anonymous, path: "org/example/lib/1.10/.lib.jar.123.upload", missing: true},
-		{name: "nothing readable", canRead: func(repository.Artifact) bool { return false }, path: "", missing: true},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -87,9 +86,11 @@ func TestListMarksArtifacts(t *testing.T) {
 	fsys := fstest.MapFS{"org/example/lib/1.0/lib-1.0.jar": &fstest.MapFile{Data: []byte("jar")}}
 	canRead := func(repository.Artifact) bool { return true }
 
-	group, err := List(fsys, []repository.Artifact{lib}, canRead, "org/example")
-	if err != nil || group.Entries[0].Artifact == nil || group.Artifact != nil {
-		t.Fatalf("group listing should mark the artifact entry: %+v, %v", group, err)
+	nested := repository.Artifact{GroupID: "org.example.lib", ArtifactID: "ext", Path: "org/example/lib/ext", Public: true}
+	fsys["org/example/lib/ext/1.0/ext-1.0.jar"] = &fstest.MapFile{Data: []byte("jar")}
+	outer, err := List(fsys, []repository.Artifact{lib, nested}, canRead, "org/example/lib")
+	if err != nil || outer.Entries[1].Name != "ext" || outer.Entries[1].Artifact == nil {
+		t.Fatalf("listing should mark nested artifacts: %+v, %v", outer, err)
 	}
 	version, err := List(fsys, []repository.Artifact{lib}, canRead, "org/example/lib/1.0")
 	if err != nil || version.Artifact == nil || version.Artifact.ArtifactID != "lib" {
@@ -97,5 +98,36 @@ func TestListMarksArtifacts(t *testing.T) {
 	}
 	if f := version.Entries[0]; f.Type != TypeFile || f.Size == nil || *f.Size != 3 || f.ModifiedAt == nil {
 		t.Fatalf("file entry: %+v", f)
+	}
+}
+
+func TestArtifacts(t *testing.T) {
+	file := &fstest.MapFile{Data: []byte("x")}
+	metadata := &fstest.MapFile{Data: []byte(`<metadata><versioning><release>1.9</release></versioning></metadata>`)}
+	fsys := fstest.MapFS{
+		"org/example/lib/1.9/lib-1.9.jar":     file,
+		"org/example/lib/1.10-SNAPSHOT/a.jar": file,
+		"org/example/lib/.tmp/x":              file,
+		"org/example/lib/maven-metadata.xml":  metadata,
+		"org/example/raw/2.0/raw-2.0.jar":     file,
+		"org/example/raw/10.0/raw-10.0.jar":   file,
+	}
+	lib := repository.Artifact{GroupID: "org.example", ArtifactID: "lib", Path: "org/example/lib", Public: true}
+	raw := repository.Artifact{GroupID: "org.example", ArtifactID: "raw", Path: "org/example/raw", Public: true}
+	secret := repository.Artifact{GroupID: "org.example", ArtifactID: "secret", Path: "org/example/secret"}
+	empty := repository.Artifact{GroupID: "org.example", ArtifactID: "empty", Path: "org/example/empty", Public: true}
+
+	got := Artifacts(fsys, []repository.Artifact{lib, raw, secret, empty}, func(a repository.Artifact) bool { return a.Public })
+	if len(got) != 3 {
+		t.Fatalf("private artifact should be left out: %+v", got)
+	}
+	if s := got[0]; s.LatestVersion != "1.9" || s.VersionCount != 2 || s.UpdatedAt == nil {
+		t.Errorf("metadata release should win: %+v", s)
+	}
+	if s := got[1]; s.LatestVersion != "10.0" || s.VersionCount != 2 || s.UpdatedAt != nil {
+		t.Errorf("without metadata the newest directory should be used: %+v", s)
+	}
+	if s := got[2]; s.LatestVersion != "" || s.VersionCount != 0 {
+		t.Errorf("nothing published: %+v", s)
 	}
 }

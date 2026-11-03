@@ -221,11 +221,15 @@ export interface BrowseEntry {
     artifact?: Artifact;
 }
 
-/** A directory of the repository, containing only what the caller may read. */
+export interface BrowseArtifact {
+    artifact: Artifact;
+    latestVersion?: string;
+    versionCount: number;
+    updatedAt?: string;
+}
+
 export interface BrowseListing {
-    /** The normalized path without leading or trailing slashes, "" for the repository root. */
     path: string;
-    /** The artifact the path is inside of, if any. */
     artifact?: Artifact;
     entries: BrowseEntry[];
 }

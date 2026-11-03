@@ -2,8 +2,9 @@ import { useMe } from '@/api/auth.ts';
 import { repositoryFileUrl, useBrowse } from '@/api/browse.ts';
 import { isApiError } from '@/api/client.ts';
 import { javadocPageUrl } from '@/api/javadoc.ts';
-import type { BrowseEntry, BrowseListing } from '@/api/types.ts';
+import type { Artifact, BrowseEntry, BrowseListing } from '@/api/types.ts';
 import { ArtifactInfo } from '@/components/browse/ArtifactInfo.tsx';
+import { ArtifactList } from '@/components/browse/ArtifactList.tsx';
 import { PageHeader } from '@/components/PageHeader.tsx';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -21,7 +22,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { formatBytes, formatDateTime } from '@/lib/format.ts';
 import { cn } from '@/lib/utils';
 import { usePageTitle } from '@/title.ts';
-import { BookOpen, Download, File, Folder, FolderSearch, Lock, Package } from 'lucide-react';
+import { BookOpen, Download, File, Folder, FolderSearch, Lock, Package, Search } from 'lucide-react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router';
 
 const SIDECAR_EXTENSIONS = ['md5', 'sha1', 'sha256', 'sha512', 'asc'];
@@ -49,31 +50,34 @@ function groupSidecars(entries: BrowseEntry[]): Row[] {
         }));
 }
 
-function PathBreadcrumbs({ path }: { path: string }) {
-    const segments = path.split('/').filter(Boolean);
+function PathBreadcrumbs({ path, artifact }: { path: string; artifact?: Artifact }) {
+    const base = artifact ? artifact.path : '';
+    const crumbs = artifact
+        ? [
+              { label: `${artifact.groupId}:${artifact.artifactId}`, path: artifact.path },
+              ...path
+                  .slice(artifact.path.length)
+                  .split('/')
+                  .filter(Boolean)
+                  .map((segment, i, rest) => ({ label: segment, path: join(base, ...rest.slice(0, i + 1)) })),
+          ]
+        : [];
     return (
         <Breadcrumb>
             <BreadcrumbList>
                 <BreadcrumbItem>
-                    {segments.length === 0 ? (
-                        <BreadcrumbPage>Repository</BreadcrumbPage>
-                    ) : (
-                        <BreadcrumbLink render={<Link to="/browse" />}>Repository</BreadcrumbLink>
-                    )}
+                    <BreadcrumbLink render={<Link to="/browse" />}>Artifacts</BreadcrumbLink>
                 </BreadcrumbItem>
-                {segments.map((segment, i) => {
-                    const last = i === segments.length - 1;
+                {crumbs.map((crumb, i) => {
+                    const last = i === crumbs.length - 1;
                     return [
                         <BreadcrumbSeparator key={`sep-${i}`} />,
                         <BreadcrumbItem key={i}>
                             {last ? (
-                                <BreadcrumbPage className="font-mono">{segment}</BreadcrumbPage>
+                                <BreadcrumbPage className="font-mono">{crumb.label}</BreadcrumbPage>
                             ) : (
-                                <BreadcrumbLink
-                                    className="font-mono"
-                                    render={<Link to={browseUrl(segments.slice(0, i + 1).join('/'))} />}
-                                >
-                                    {segment}
+                                <BreadcrumbLink className="font-mono" render={<Link to={browseUrl(crumb.path)} />}>
+                                    {crumb.label}
                                 </BreadcrumbLink>
                             )}
                         </BreadcrumbItem>,
@@ -208,7 +212,8 @@ function javadocUrl(listing: BrowseListing): string | undefined {
 function NotFound({ path }: { path: string }) {
     const { data: me } = useMe();
     const location = useLocation();
-    const root = path === '';
+    // Paths above artifacts are groups, which can be found by searching for them.
+    const group = path.split('/').join('.');
 
     return (
         <Empty className="border">
@@ -216,37 +221,39 @@ function NotFound({ path }: { path: string }) {
                 <EmptyMedia variant="icon">
                     <FolderSearch />
                 </EmptyMedia>
-                <EmptyTitle>{root ? 'Nothing to browse yet' : 'Not found'}</EmptyTitle>
+                <EmptyTitle>Not found</EmptyTitle>
                 <EmptyDescription>
-                    {root
-                        ? me
-                            ? 'There are no artifacts you have access to.'
-                            : 'There are no public artifacts.'
-                        : me
-                          ? 'This path doesn’t exist or you don’t have access to it.'
-                          : 'This path doesn’t exist, or it is private.'}
+                    {me
+                        ? 'This path doesn’t exist or you don’t have access to it.'
+                        : 'This path doesn’t exist, or it is private.'}
                 </EmptyDescription>
             </EmptyHeader>
-            {!me && (
-                <EmptyContent>
-                    <Button render={<Link to="/login" state={{ from: location.pathname }} />}>
+            <EmptyContent className="flex-row flex-wrap justify-center">
+                <Button
+                    variant="outline"
+                    render={<Link to={`/browse?${new URLSearchParams({ q: group })}`} />}
+                    nativeButton={false}
+                >
+                    <Search />
+                    Search for <span className="font-mono">{group}</span>
+                </Button>
+                {!me && (
+                    <Button render={<Link to="/login" state={{ from: location.pathname }} />} nativeButton={false}>
                         Log in to see private artifacts
                     </Button>
-                </EmptyContent>
-            )}
+                )}
+            </EmptyContent>
         </Empty>
     );
 }
 
-export function BrowsePage() {
-    const path = (useParams()['*'] ?? '').split('/').filter(Boolean).join('/');
+function ArtifactDirectory({ path }: { path: string }) {
     const { data: listing, error, isPending, isPlaceholderData } = useBrowse(path);
-    usePageTitle(path.split('/').at(-1) || undefined);
+    usePageTitle(path.split('/').at(-1));
 
     return (
         <>
-            <PageHeader title="Browse" description="The repository as it is laid out on disk." />
-            <PathBreadcrumbs path={path} />
+            <PathBreadcrumbs path={path} artifact={listing?.artifact} />
 
             {isPending && (
                 <div className="flex flex-col gap-2">
@@ -271,6 +278,17 @@ export function BrowsePage() {
                     <EntryTable listing={listing} />
                 </div>
             )}
+        </>
+    );
+}
+
+export function BrowsePage() {
+    const path = (useParams()['*'] ?? '').split('/').filter(Boolean).join('/');
+
+    return (
+        <>
+            <PageHeader title="Browse" description="The artifacts you have access to, their versions and files." />
+            {path ? <ArtifactDirectory path={path} /> : <ArtifactList />}
         </>
     );
 }
