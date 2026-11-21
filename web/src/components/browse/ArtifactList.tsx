@@ -17,12 +17,11 @@ function matches({ artifact }: BrowseArtifact, query: string) {
     return (
         !q ||
         `${artifact.groupId}:${artifact.artifactId}`.toLowerCase().includes(q) ||
-        artifact.repository.toLowerCase().includes(q) ||
         (artifact.description?.toLowerCase().includes(q) ?? false)
     );
 }
 
-function NoArtifacts() {
+function NoArtifacts({ repository }: { repository: string }) {
     const { data: me } = useMe();
     const location = useLocation();
 
@@ -32,7 +31,7 @@ function NoArtifacts() {
                 <EmptyMedia variant="icon">
                     <PackageSearch />
                 </EmptyMedia>
-                <EmptyTitle>Nothing to browse yet</EmptyTitle>
+                <EmptyTitle>Nothing to browse in {repository} yet</EmptyTitle>
                 <EmptyDescription>
                     {me ? 'There are no artifacts you have access to.' : 'There are no public artifacts.'}
                 </EmptyDescription>
@@ -57,7 +56,6 @@ function ArtifactTable({ items, query }: { items: BrowseArtifact[]; query: strin
                 <TableHeader>
                     <TableRow>
                         <TableHead>Artifact</TableHead>
-                        <TableHead className="hidden sm:table-cell">Repository</TableHead>
                         <TableHead>Latest</TableHead>
                         <TableHead className="hidden text-right sm:table-cell">Versions</TableHead>
                         <TableHead className="hidden md:table-cell">Updated</TableHead>
@@ -69,7 +67,7 @@ function ArtifactTable({ items, query }: { items: BrowseArtifact[]; query: strin
                 <TableBody>
                     {items.length === 0 && (
                         <TableRow>
-                            <TableCell colSpan={6} className="h-20 text-center text-muted-foreground">
+                            <TableCell colSpan={5} className="h-20 text-center text-muted-foreground">
                                 No artifact matches “{query.trim()}”.
                             </TableCell>
                         </TableRow>
@@ -102,9 +100,6 @@ function ArtifactTable({ items, query }: { items: BrowseArtifact[]; query: strin
                                         </p>
                                     )}
                                 </TableCell>
-                                <TableCell className="hidden align-top font-mono text-sm text-muted-foreground sm:table-cell">
-                                    {artifact.repository}
-                                </TableCell>
                                 <TableCell className="align-top">
                                     {latestVersion ? (
                                         <Badge variant="secondary" className="font-mono">
@@ -132,8 +127,10 @@ function ArtifactTable({ items, query }: { items: BrowseArtifact[]; query: strin
     );
 }
 
-export function ArtifactList() {
-    const { data: items, error, isPending } = useBrowseArtifacts();
+/** The artifacts of a repository that the caller can read. */
+export function ArtifactList({ repository }: { repository: string }) {
+    const { data: all, error, isPending } = useBrowseArtifacts();
+    const items = all?.filter((item) => item.artifact.repository === repository);
     const [searchParams, setSearchParams] = useSearchParams();
     const query = searchParams.get('q') ?? '';
 
@@ -149,7 +146,7 @@ export function ArtifactList() {
                 </div>
             )}
             {error && <p className="text-destructive">{error.message}</p>}
-            {items?.length === 0 && <NoArtifacts />}
+            {items?.length === 0 && <NoArtifacts repository={repository} />}
 
             {items && items.length > 0 && (
                 <>

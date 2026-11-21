@@ -1,9 +1,13 @@
 import { useMe } from '@/api/auth.ts';
 import { useBrowse } from '@/api/browse.ts';
 import { isApiError } from '@/api/client.ts';
+import { useRepositories, versionPolicyLabels } from '@/api/repositories.ts';
 import type { Artifact } from '@/api/types.ts';
 import { ArtifactDetail } from '@/components/browse/ArtifactDetail.tsx';
 import { ArtifactList } from '@/components/browse/ArtifactList.tsx';
+import { RepositoryList } from '@/components/browse/RepositoryList.tsx';
+import { CopyButton } from '@/components/CopyButton.tsx';
+import { Badge } from '@/components/ui/badge';
 import { EntryTable } from '@/components/browse/EntryTable.tsx';
 import { browseUrl, join } from '@/components/browse/paths.ts';
 import { PageHeader } from '@/components/PageHeader.tsx';
@@ -25,21 +29,25 @@ import { Link, useLocation, useParams } from 'react-router';
 
 function PathBreadcrumbs({ path, artifact }: { path: string; artifact?: Artifact }) {
     const base = artifact ? artifact.path : '';
-    const crumbs = artifact
-        ? [
-              { label: `${artifact.groupId}:${artifact.artifactId}`, path: artifact.path },
-              ...path
-                  .slice(artifact.path.length)
-                  .split('/')
-                  .filter(Boolean)
-                  .map((segment, i, rest) => ({ label: segment, path: join(base, ...rest.slice(0, i + 1)) })),
-          ]
-        : [];
+    const repository = path.split('/')[0];
+    const crumbs = [
+        { label: repository, path: repository },
+        ...(artifact
+            ? [
+                  { label: `${artifact.groupId}:${artifact.artifactId}`, path: artifact.path },
+                  ...path
+                      .slice(artifact.path.length)
+                      .split('/')
+                      .filter(Boolean)
+                      .map((segment, i, rest) => ({ label: segment, path: join(base, ...rest.slice(0, i + 1)) })),
+              ]
+            : []),
+    ];
     return (
         <Breadcrumb>
             <BreadcrumbList>
                 <BreadcrumbItem>
-                    <BreadcrumbLink render={<Link to="/browse" />}>Artifacts</BreadcrumbLink>
+                    <BreadcrumbLink render={<Link to="/browse" />}>Repositories</BreadcrumbLink>
                 </BreadcrumbItem>
                 {crumbs.map((crumb, i) => {
                     const last = i === crumbs.length - 1;
@@ -64,7 +72,8 @@ function PathBreadcrumbs({ path, artifact }: { path: string; artifact?: Artifact
 function NotFound({ path }: { path: string }) {
     const { data: me } = useMe();
     const location = useLocation();
-    const group = path.split('/').join('.');
+    const [repository, ...rest] = path.split('/');
+    const group = rest.join('.');
 
     return (
         <Empty className="border">
@@ -80,14 +89,16 @@ function NotFound({ path }: { path: string }) {
                 </EmptyDescription>
             </EmptyHeader>
             <EmptyContent className="flex-row flex-wrap justify-center">
-                <Button
-                    variant="outline"
-                    render={<Link to={`/browse?${new URLSearchParams({ q: group })}`} />}
-                    nativeButton={false}
-                >
-                    <Search />
-                    Search for <span className="font-mono">{group}</span>
-                </Button>
+                {group && (
+                    <Button
+                        variant="outline"
+                        render={<Link to={`${browseUrl(repository)}?${new URLSearchParams({ q: group })}`} />}
+                        nativeButton={false}
+                    >
+                        <Search />
+                        Search for <span className="font-mono">{group}</span>
+                    </Button>
+                )}
                 {!me && (
                     <Button render={<Link to="/login" state={{ from: location.pathname }} />} nativeButton={false}>
                         Log in to see private artifacts
@@ -131,14 +142,53 @@ function ArtifactDirectory({ path }: { path: string }) {
     );
 }
 
+function RepositoryPage({ name }: { name: string }) {
+    const { data: repositories, error, isPending } = useRepositories();
+    const repository = repositories?.find((r) => r.name === name);
+    usePageTitle(name);
+
+    return (
+        <>
+            <PathBreadcrumbs path={name} />
+            {isPending && <Skeleton className="h-16 max-w-md" />}
+            {error && <p className="text-destructive">{error.message}</p>}
+            {repositories && !repository && <NotFound path={name} />}
+            {repository && (
+                <>
+                    <div className="flex flex-col gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
+                            <h1 className="font-mono text-2xl font-semibold tracking-tight">{repository.name}</h1>
+                            <Badge variant="secondary">{versionPolicyLabels[repository.versionPolicy]}</Badge>
+                        </div>
+                        {repository.description && <p className="text-muted-foreground">{repository.description}</p>}
+                        <div className="flex items-center gap-1 font-mono text-sm text-muted-foreground">
+                            {window.location.origin}/{repository.name}
+                            <CopyButton
+                                text={`${window.location.origin}/${repository.name}`}
+                                label="Copy repository URL"
+                                size="icon-xs"
+                            />
+                        </div>
+                    </div>
+                    <ArtifactList repository={repository.name} />
+                </>
+            )}
+        </>
+    );
+}
+
 export function BrowsePage() {
     const path = (useParams()['*'] ?? '').split('/').filter(Boolean).join('/');
 
-    if (path) return <ArtifactDirectory path={path} />;
+    if (path.includes('/')) return <ArtifactDirectory path={path} />;
+    if (path) return <RepositoryPage key={path} name={path} />;
     return (
         <>
-            <PageHeader title="Browse" description="The artifacts you have access to, their versions and files." />
-            <ArtifactList />
+            <PageHeader
+                title="Browse"
+                description="Pick a repository to see its artifacts, their versions and files."
+            />
+            <RepositoryList />
         </>
     );
 }
