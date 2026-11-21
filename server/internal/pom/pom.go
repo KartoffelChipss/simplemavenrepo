@@ -78,12 +78,15 @@ type extra struct {
 
 type resolver struct {
 	fsys       fs.FS
-	canRead    func(artifactPath string) bool
+	locate     func(coordinatesPath string) []string
 	unresolved []string
 }
 
-func Resolve(fsys fs.FS, dir, artifactID, version string, canRead func(artifactPath string) bool) (Project, error) {
-	r := &resolver{fsys: fsys, canRead: canRead, unresolved: []string{}}
+// Resolve reads the POM in the version directory dir along with its parents and imported BOMs. locate maps the
+// directory an artifact has in a single repository, e.g. com/example/demo, to the directories of the copies the caller
+// can read, the preferred one first.
+func Resolve(fsys fs.FS, dir, artifactID, version string, locate func(coordinatesPath string) []string) (Project, error) {
+	r := &resolver{fsys: fsys, locate: locate, unresolved: []string{}}
 	file, ok := findPom(fsys, dir, artifactID, version)
 	if !ok {
 		return Project{}, ErrNotFound
@@ -186,11 +189,12 @@ func (r *resolver) load(file string) (maven.Project, extra, error) {
 }
 
 func (r *resolver) find(g, a, v string) (maven.Project, extra, bool) {
-	artifactPath := path.Join(strings.ReplaceAll(g, ".", "/"), a)
-	if g != "" && a != "" && v != "" && !strings.Contains(v, "${") && r.canRead(artifactPath) {
-		if file, ok := findPom(r.fsys, path.Join(artifactPath, v), a, v); ok {
-			if p, ex, err := r.load(file); err == nil {
-				return p, ex, true
+	if g != "" && a != "" && v != "" && !strings.Contains(v, "${") {
+		for _, artifactPath := range r.locate(path.Join(strings.ReplaceAll(g, ".", "/"), a)) {
+			if file, ok := findPom(r.fsys, path.Join(artifactPath, v), a, v); ok {
+				if p, ex, err := r.load(file); err == nil {
+					return p, ex, true
+				}
 			}
 		}
 	}

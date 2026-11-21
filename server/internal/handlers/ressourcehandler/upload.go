@@ -84,46 +84,65 @@ func recordDeploy(c fiber.Ctx, repos repository.Repositories, d deployment, uplo
 }
 
 func upload(c fiber.Ctx, root *os.Root, repos repository.Repositories, d *deployment) error {
-	relPath, err := validateUploadPath(c.Params("*"))
+	repo := currentRepo(c)
+	// The path inside the repository, used for the files, and the full path, used for artifacts and permissions
+	relPath, err := validateUploadPath(strings.TrimPrefix(c.Params("*"), repo.Name+"/"))
 	if err != nil {
 		d.logTo(c, repos, c.Params("*"))
 		return fiber.NewError(fiber.StatusBadRequest, err.Error())
 	}
+	fullPath := repo.Name + "/" + relPath
 
-	allowed, err := auth.Authorize(c, repos.Grants, relPath, repository.PermissionWrite)
+	allowed, err := auth.Authorize(c, repos.Grants, fullPath, repository.PermissionWrite)
 	if err != nil {
-		log.Printf("Checking permissions for %s failed: %v", relPath, err)
+		log.Printf("Checking permissions for %s failed: %v", fullPath, err)
 		return fiber.ErrInternalServerError
 	}
 	if !allowed {
-		d.logTo(c, repos, relPath)
-		return fiber.NewError(fiber.StatusForbidden, "no write permission for "+path.Dir(relPath))
+		d.logTo(c, repos, fullPath)
+		return fiber.NewError(fiber.StatusForbidden, "no write permission for "+path.Dir(fullPath))
 	}
 
 	// Checked after authorization so only users with write access learn which artifacts are registered
-	artifact, err := repos.Artifacts.FindByPath(c.Context(), relPath)
+	artifact, err := repos.Artifacts.FindByPath(c.Context(), fullPath)
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
-			return fiber.NewError(fiber.StatusNotFound, "no registered artifact contains "+relPath)
+			// Not 404: Maven reports that as "Could not find artifact" and drops the message
+			return fiber.NewError(fiber.StatusForbidden,
+				coordinatesOf(relPath)+" is not registered in repository "+repo.Name+", an admin has to register it first")
 		}
-		log.Printf("Looking up artifact for %s failed: %v", relPath, err)
+		log.Printf("Looking up artifact for %s failed: %v", fullPath, err)
 		return fiber.ErrInternalServerError
 	}
 
 	if isIgnoredUpload(relPath) {
 		return c.SendStatus(fiber.StatusNoContent)
 	}
-	d.artifact, d.relPath = &artifact, relPath
+	d.artifact, d.relPath = &artifact, fullPath
+	if version := path.Base(path.Dir(relPath)); !repo.VersionPolicy.Allows(version) {
+		return fiber.NewError(fiber.StatusBadRequest, policyError(repo, version))
+	}
 	if !hasStoredExtension(relPath) {
 		return fiber.NewError(fiber.StatusUnsupportedMediaType, "only "+strings.Join(storedExtensions, ", ")+" files can be uploaded")
 	}
 
+	if err := root.MkdirAll(repo.Name, 0o755); err != nil {
+		log.Printf("Creating the directory of repository %s failed: %v", repo.Name, err)
+		return fiber.ErrInternalServerError
+	}
+	repoRoot, err := root.OpenRoot(repo.Name)
+	if err != nil {
+		log.Printf("Opening the directory of repository %s failed: %v", repo.Name, err)
+		return fiber.ErrInternalServerError
+	}
+	defer repoRoot.Close()
+
 	replace := artifact.AllowReleaseOverwrite || isSnapshotPath(relPath)
 	if !replace {
-		if _, err := root.Stat(relPath); err == nil {
-			return errReleaseExists(relPath)
+		if _, err := repoRoot.Stat(relPath); err == nil {
+			return errReleaseExists(fullPath)
 		} else if !errors.Is(err, fs.ErrNotExist) {
-			log.Printf("Checking for existing %s failed: %v", relPath, err)
+			log.Printf("Checking for existing %s failed: %v", fullPath, err)
 			return fiber.ErrInternalServerError
 		}
 	}
@@ -135,22 +154,36 @@ func upload(c fiber.Ctx, root *os.Root, repos repository.Repositories, d *deploy
 		body = bytes.NewReader(c.Body())
 	}
 
-	if err := writeFileAtomicWithHashes(root, relPath, body, replace); err != nil {
+	if err := writeFileAtomicWithHashes(repoRoot, relPath, body, replace); err != nil {
 		if errors.Is(err, fs.ErrExist) {
-			return errReleaseExists(relPath)
+			return errReleaseExists(fullPath)
 		}
-		log.Printf("Upload of %s failed: %v", relPath, err)
+		log.Printf("Upload of %s failed: %v", fullPath, err)
 		return fiber.NewError(fiber.StatusInternalServerError, "failed to store file")
 	}
-	if err := updateMetadata(root, relPath); err != nil {
-		log.Printf("Updating metadata for %s failed: %v", relPath, err)
+	if err := updateMetadata(repoRoot, repo.Name, relPath); err != nil {
+		log.Printf("Updating metadata for %s failed: %v", fullPath, err)
 		return fiber.NewError(fiber.StatusInternalServerError, "failed to update metadata")
 	}
-	if info, err := root.Stat(relPath); err == nil {
+	if info, err := repoRoot.Stat(relPath); err == nil {
 		size := info.Size()
 		d.size = &size
 	}
 	return c.SendStatus(fiber.StatusCreated)
+}
+
+// coordinatesOf returns groupId:artifactId of a valid upload path <group path>/<artifactId>/<version>/<file>.
+func coordinatesOf(relPath string) string {
+	segments := strings.Split(relPath, "/")
+	n := len(segments)
+	return strings.Join(segments[:n-3], ".") + ":" + segments[n-3]
+}
+
+func policyError(repo repository.Repo, version string) string {
+	if repo.VersionPolicy == repository.PolicySnapshot {
+		return "repository " + repo.Name + " only accepts SNAPSHOT versions, not " + version
+	}
+	return "repository " + repo.Name + " only accepts release versions, not " + version
 }
 
 func errReleaseExists(relPath string) error {

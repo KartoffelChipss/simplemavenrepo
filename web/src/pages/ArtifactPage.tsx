@@ -1,6 +1,6 @@
 import { useArtifact, useDeleteArtifact, useUpdateArtifact } from '@/api/artifacts.ts';
 import { isApiError } from '@/api/client.ts';
-import type { Artifact } from '@/api/types.ts';
+import type { Artifact, ArtifactRef } from '@/api/types.ts';
 import { DeployLog } from '@/components/artifacts/DeployLog.tsx';
 import { DownloadsCard } from '@/components/downloads/DownloadsCard.tsx';
 import { ReadmeBadge } from '@/components/artifacts/ReadmeBadge.tsx';
@@ -34,7 +34,7 @@ import { ArrowLeft, FolderTree } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router';
 
-const coordinates = (a: Artifact) => `${a.groupId}:${a.artifactId}`;
+const coordinates = (a: ArtifactRef) => `${a.groupId}:${a.artifactId}`;
 
 const TABS = [
     { value: 'settings', label: 'Settings' },
@@ -59,6 +59,7 @@ function SettingsCard({ artifact }: { artifact: Artifact }) {
         e.preventDefault();
         update.mutate(
             {
+                repository: artifact.repository,
                 groupId: artifact.groupId,
                 artifactId: artifact.artifactId,
                 public: isPublic,
@@ -227,8 +228,8 @@ function DeleteArtifactCard({ artifact }: { artifact: Artifact }) {
 }
 
 export function ArtifactPage() {
-    const { groupId = '', artifactId = '' } = useParams();
-    const { data: artifact, error, isPending } = useArtifact({ groupId, artifactId });
+    const { repository = '', groupId = '', artifactId = '' } = useParams();
+    const { data: artifact, error, isPending } = useArtifact({ repository, groupId, artifactId });
     usePageTitle(`${groupId}:${artifactId}`);
     const location = useLocation();
     const back = (location.state as { back?: BackTo } | null)?.back ?? { to: '/artifacts', label: 'Artifacts' };
@@ -259,7 +260,7 @@ export function ArtifactPage() {
             {isApiError(error, 404) && (
                 <PageHeader
                     title="Artifact not found"
-                    description={`There is no registered artifact “${groupId}:${artifactId}”.`}
+                    description={`There is no registered artifact “${groupId}:${artifactId}” in “${repository}”.`}
                 />
             )}
             {error && !isApiError(error, 404) && <p className="text-destructive">{error.message}</p>}
@@ -269,7 +270,7 @@ export function ArtifactPage() {
                     <div className="flex flex-wrap items-start justify-between gap-4">
                         <PageHeader
                             title={coordinates(artifact)}
-                            description={`Registered ${formatDate(artifact.createdAt)} · ${formatBytes(artifact.size)} on disk`}
+                            description={`In ${artifact.repository} · registered ${formatDate(artifact.createdAt)} · ${formatBytes(artifact.size)} on disk`}
                         />
                         <Button variant="outline" render={<Link to={artifactBrowseUrl(artifact)} />}>
                             <FolderTree />

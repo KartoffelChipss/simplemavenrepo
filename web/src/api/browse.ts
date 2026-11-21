@@ -15,7 +15,8 @@ export function useBrowseArtifacts() {
 export const browse = (path: string, signal?: AbortSignal) =>
     request<BrowseListing>('GET', `/browse/${encodePath(path)}`, undefined, signal);
 
-export const repositoryFileUrl = (path: string) => `/releases/${encodePath(path)}`;
+/** URL of a file, given as its path starting with the repository. */
+export const repositoryFileUrl = (path: string) => `/${encodePath(path)}`;
 
 export const browseQuery = (path: string) =>
     queryOptions({

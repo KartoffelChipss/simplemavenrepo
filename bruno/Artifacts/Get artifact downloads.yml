@@ -5,7 +5,7 @@ info:
 
 http:
   method: GET
-  url: "{{baseUrl}}/api/artifacts/{{groupId}}/{{artifactId}}/downloads?days=30"
+  url: "{{baseUrl}}/api/artifacts/{{repository}}/{{groupId}}/{{artifactId}}/downloads?days=30"
   params:
     - name: days
       value: "30"

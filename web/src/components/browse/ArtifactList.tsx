@@ -17,6 +17,7 @@ function matches({ artifact }: BrowseArtifact, query: string) {
     return (
         !q ||
         `${artifact.groupId}:${artifact.artifactId}`.toLowerCase().includes(q) ||
+        artifact.repository.toLowerCase().includes(q) ||
         (artifact.description?.toLowerCase().includes(q) ?? false)
     );
 }
@@ -56,6 +57,7 @@ function ArtifactTable({ items, query }: { items: BrowseArtifact[]; query: strin
                 <TableHeader>
                     <TableRow>
                         <TableHead>Artifact</TableHead>
+                        <TableHead className="hidden sm:table-cell">Repository</TableHead>
                         <TableHead>Latest</TableHead>
                         <TableHead className="hidden text-right sm:table-cell">Versions</TableHead>
                         <TableHead className="hidden md:table-cell">Updated</TableHead>
@@ -67,7 +69,7 @@ function ArtifactTable({ items, query }: { items: BrowseArtifact[]; query: strin
                 <TableBody>
                     {items.length === 0 && (
                         <TableRow>
-                            <TableCell colSpan={5} className="h-20 text-center text-muted-foreground">
+                            <TableCell colSpan={6} className="h-20 text-center text-muted-foreground">
                                 No artifact matches “{query.trim()}”.
                             </TableCell>
                         </TableRow>
@@ -99,6 +101,9 @@ function ArtifactTable({ items, query }: { items: BrowseArtifact[]; query: strin
                                             {artifact.description}
                                         </p>
                                     )}
+                                </TableCell>
+                                <TableCell className="hidden align-top font-mono text-sm text-muted-foreground sm:table-cell">
+                                    {artifact.repository}
                                 </TableCell>
                                 <TableCell className="align-top">
                                     {latestVersion ? (

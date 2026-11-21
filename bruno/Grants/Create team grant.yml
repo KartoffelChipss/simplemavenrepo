@@ -11,7 +11,7 @@ http:
     data: |-
       {
         "team": "{{team}}",
-        "pattern": "com/example/**",
+        "pattern": "releases/com/example/**",
         "permission": "read"
       }
   auth: inherit
@@ -31,4 +31,4 @@ settings:
   maxRedirects: 5
   forwardAuthorizationHeader: true
 
-docs: "`permission` is `read` or `write`. `pattern` is a repository path like `com/example/**`; `**` matches everything."
+docs: "`permission` is `read` or `write`. `pattern` is a path starting with the repository like `releases/com/example/**`; `releases/**` matches a whole repository and `**` matches everything."

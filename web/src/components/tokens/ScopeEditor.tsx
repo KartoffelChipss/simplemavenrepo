@@ -58,7 +58,7 @@ export function ScopeEditor({ scopes, onChange }: { scopes: TokenScope[]; onChan
                 <Input
                     aria-label="Repository path"
                     className="min-w-0 flex-1 font-mono"
-                    placeholder="com/example/lib"
+                    placeholder="releases/com/example/lib"
                     autoCapitalize="none"
                     spellCheck={false}
                     value={pattern}
@@ -93,8 +93,9 @@ export function ScopeEditor({ scopes, onChange }: { scopes: TokenScope[]; onChan
                 <FieldError>{patternInvalid}</FieldError>
             ) : (
                 <FieldDescription>
-                    An artifact path like <span className="font-mono">com/example/lib</span> or a group path that covers
-                    everything below it. The token never gets more access than its user.
+                    A path that starts with the repository, like{' '}
+                    <span className="font-mono">releases/com/example/lib</span>, and covers everything below it. The
+                    token never gets more access than its user.
                 </FieldDescription>
             )}
         </div>

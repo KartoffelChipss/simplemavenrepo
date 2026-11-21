@@ -40,9 +40,15 @@ export const router = createBrowserRouter([
                                 }),
                             },
                             {
-                                path: 'artifacts/:groupId/:artifactId',
+                                path: 'artifacts/:repository/:groupId/:artifactId',
                                 lazy: async () => ({
                                     Component: (await import('./pages/ArtifactPage.tsx')).ArtifactPage,
+                                }),
+                            },
+                            {
+                                path: 'repositories',
+                                lazy: async () => ({
+                                    Component: (await import('./pages/RepositoriesPage.tsx')).RepositoriesPage,
                                 }),
                             },
                             {

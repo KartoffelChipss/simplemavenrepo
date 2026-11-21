@@ -1,5 +1,6 @@
 import { useMe } from '@/api/auth.ts';
 import { javadocPageUrl, useJavadocList } from '@/api/javadoc.ts';
+import { RepositoryBadge } from '@/components/artifacts/RepositoryBadge.tsx';
 import type { JavadocArtifact } from '@/api/types.ts';
 import { PageHeader } from '@/components/PageHeader.tsx';
 import { Badge } from '@/components/ui/badge';
@@ -88,6 +89,7 @@ function JavadocTable({ items }: { items: JavadocArtifact[] }) {
                                             <span className="text-muted-foreground">{artifact.groupId}:</span>
                                             {artifact.artifactId}
                                         </Link>
+                                        <RepositoryBadge name={artifact.repository} />
                                         {!artifact.public && (
                                             <Badge variant="outline">
                                                 <Lock />

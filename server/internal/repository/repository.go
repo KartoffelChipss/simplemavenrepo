@@ -21,6 +21,7 @@ type Repositories struct {
 	Tokens    *TokenRepository
 	Sessions  *SessionRepository
 	Grants    *GrantRepository
+	Repos     *RepoRepository
 	Artifacts *ArtifactRepository
 	Deploys   *DeployRepository
 	Downloads *DownloadRepository
@@ -34,6 +35,7 @@ func New(db *sql.DB) Repositories {
 		Tokens:    &TokenRepository{db: db},
 		Sessions:  &SessionRepository{db: db},
 		Grants:    &GrantRepository{db: db},
+		Repos:     &RepoRepository{db: db},
 		Artifacts: &ArtifactRepository{db: db},
 		Deploys:   &DeployRepository{db: db},
 		Downloads: &DownloadRepository{db: db},
@@ -54,6 +56,11 @@ func mapErr(err error) error {
 		}
 	}
 	return err
+}
+
+func isForeignKeyErr(err error) bool {
+	var se *sqlite.Error
+	return errors.As(err, &se) && se.Code() == sqlite3.SQLITE_CONSTRAINT_FOREIGNKEY
 }
 
 // requireAffected returns ErrNotFound when a write did not touch any row.

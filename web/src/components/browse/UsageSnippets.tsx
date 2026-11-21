@@ -11,7 +11,7 @@ function snippets(artifact: Artifact, version: string, repositoryUrl: string) {
             language: 'xml',
             code: `<repositories>
   <repository>
-    <id>smr</id>
+    <id>${artifact.repository}</id>
     <url>${repositoryUrl}</url>
   </repository>
 </repositories>
@@ -50,7 +50,7 @@ dependencies {
 }
 
 export function UsageSnippets({ artifact, version }: { artifact: Artifact; version: string }) {
-    const items = snippets(artifact, version, `${window.location.origin}/releases`);
+    const items = snippets(artifact, version, `${window.location.origin}/${artifact.repository}`);
 
     return (
         <Tabs defaultValue="maven">

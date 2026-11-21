@@ -1,4 +1,4 @@
-import type { GrantFilter } from '@/api/types.ts';
+import type { ArtifactRef, GrantFilter } from '@/api/types.ts';
 
 export const aboutKeys = {
     all: ['about'] as const,
@@ -40,11 +40,16 @@ export const grantKeys = {
 export const artifactKeys = {
     all: ['artifacts'] as const,
     list: () => [...artifactKeys.all, 'list'] as const,
-    detail: (groupId: string, artifactId: string) => [...artifactKeys.all, 'detail', groupId, artifactId] as const,
-    deploys: (groupId: string, artifactId: string, page: number) =>
-        [...artifactKeys.detail(groupId, artifactId), 'deploys', page] as const,
-    downloads: (groupId: string, artifactId: string, days: number) =>
-        [...artifactKeys.detail(groupId, artifactId), 'downloads', days] as const,
+    detail: ({ repository, groupId, artifactId }: ArtifactRef) =>
+        [...artifactKeys.all, 'detail', repository, groupId, artifactId] as const,
+    deploys: (id: ArtifactRef, page: number) => [...artifactKeys.detail(id), 'deploys', page] as const,
+    downloads: (id: ArtifactRef, days: number) => [...artifactKeys.detail(id), 'downloads', days] as const,
+};
+
+export const repoKeys = {
+    all: ['repositories'] as const,
+    list: () => [...repoKeys.all, 'list'] as const,
+    detail: (name: string) => [...repoKeys.all, 'detail', name] as const,
 };
 
 export const browseKeys = {

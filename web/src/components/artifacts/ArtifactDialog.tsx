@@ -1,4 +1,5 @@
 import { useCreateArtifact } from '@/api/artifacts.ts';
+import { useRepositories, versionPolicyLabels } from '@/api/repositories.ts';
 import { artifactIdError, groupIdError, MAX_DESCRIPTION_LENGTH } from '@/components/artifacts/validation.ts';
 import { Button } from '@/components/ui/button';
 import {
@@ -13,6 +14,7 @@ import {
 } from '@/components/ui/dialog';
 import { Field, FieldContent, FieldDescription, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Spinner } from '@/components/ui/spinner';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
@@ -20,6 +22,11 @@ import { toast } from '@/components/ui/toast';
 import { useState, type FormEvent, type ReactElement } from 'react';
 
 function ArtifactForm({ onDone }: { onDone: () => void }) {
+    const { data: repositories } = useRepositories();
+    const [chosenRepository, setRepository] = useState<string | null>(null);
+    const repository =
+        chosenRepository ?? repositories?.find((r) => r.name === 'releases')?.name ?? repositories?.[0]?.name ?? null;
+    const repositoryItems = (repositories ?? []).map((r) => ({ value: r.name, label: r.name }));
     const [groupId, setGroupId] = useState('');
     const [artifactId, setArtifactId] = useState('');
     const [description, setDescription] = useState('');
@@ -30,13 +37,16 @@ function ArtifactForm({ onDone }: { onDone: () => void }) {
 
     const groupIdInvalid = groupIdError(groupId.trim());
     const artifactIdInvalid = artifactIdError(artifactId.trim());
-    const canSubmit = !create.isPending && groupId.trim() && artifactId.trim() && !groupIdInvalid && !artifactIdInvalid;
+    const canSubmit =
+        !create.isPending && repository && groupId.trim() && artifactId.trim() && !groupIdInvalid && !artifactIdInvalid;
 
     function onSubmit(e: FormEvent) {
         e.preventDefault();
+        if (!repository) return;
         const coordinates = `${groupId.trim()}:${artifactId.trim()}`;
         create.mutate(
             {
+                repository,
                 groupId: groupId.trim(),
                 artifactId: artifactId.trim(),
                 public: isPublic,
@@ -45,7 +55,7 @@ function ArtifactForm({ onDone }: { onDone: () => void }) {
             },
             {
                 onSuccess: () => {
-                    toast.add({ title: 'Artifact registered', description: coordinates });
+                    toast.add({ title: 'Artifact registered', description: `${coordinates} in ${repository}` });
                     onDone();
                 },
             }
@@ -62,6 +72,24 @@ function ArtifactForm({ onDone }: { onDone: () => void }) {
                 </DialogDescription>
             </DialogHeader>
             <FieldGroup className="py-4">
+                <Field>
+                    <FieldLabel>Repository</FieldLabel>
+                    <Select items={repositoryItems} value={repository} onValueChange={setRepository}>
+                        <SelectTrigger aria-label="Repository">
+                            <SelectValue placeholder="Choose a repository…" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {repositories?.map((r) => (
+                                <SelectItem key={r.name} value={r.name}>
+                                    <span className="font-mono">{r.name}</span>
+                                    <span className="text-muted-foreground">
+                                        {versionPolicyLabels[r.versionPolicy]}
+                                    </span>
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </Field>
                 <Field data-invalid={!!groupIdInvalid}>
                     <FieldLabel htmlFor="artifact-group">Group ID</FieldLabel>
                     <Input

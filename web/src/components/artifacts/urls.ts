@@ -1,12 +1,8 @@
+import type { ArtifactRef } from '@/api/types.ts';
 import { useLocation } from 'react-router';
 
-interface ArtifactId {
-    groupId: string;
-    artifactId: string;
-}
-
-export const artifactSettingsUrl = ({ groupId, artifactId }: ArtifactId) =>
-    `/artifacts/${encodeURIComponent(groupId)}/${encodeURIComponent(artifactId)}`;
+export const artifactSettingsUrl = ({ repository, groupId, artifactId }: ArtifactRef) =>
+    `/artifacts/${encodeURIComponent(repository)}/${encodeURIComponent(groupId)}/${encodeURIComponent(artifactId)}`;
 
 export interface BackTo {
     to: string;

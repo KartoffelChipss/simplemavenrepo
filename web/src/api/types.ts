@@ -69,9 +69,27 @@ export interface CreatedToken extends Token {
     token: string;
 }
 
-export interface Artifact {
+export type VersionPolicy = 'release' | 'snapshot' | 'mixed';
+
+/** A Maven repository, served under /<name>. */
+export interface Repository {
     id: number;
+    name: string;
+    description: string | null;
+    /** Which versions can be deployed: only releases, only snapshots or both. */
+    versionPolicy: VersionPolicy;
+    createdAt: string;
+}
+
+/** Identifies an artifact: the same coordinates can be registered in several repositories. */
+export interface ArtifactRef {
+    repository: string;
     groupId: string;
+    artifactId: string;
+}
+
+export interface Artifact extends ArtifactRef {
+    id: number;
     artifactId: string;
     path: string;
     public: boolean;
@@ -188,7 +206,20 @@ export interface GrantFilter {
     team?: string;
 }
 
+export interface CreateRepositoryRequest {
+    name: string;
+    versionPolicy: VersionPolicy;
+    description?: string | null;
+}
+
+/** An empty description clears it, a missing field leaves it unchanged. */
+export interface UpdateRepositoryRequest {
+    versionPolicy?: VersionPolicy;
+    description?: string;
+}
+
 export interface CreateArtifactRequest {
+    repository: string;
     groupId: string;
     artifactId: string;
     public?: boolean;
@@ -263,7 +294,7 @@ export interface PomDependency {
     type?: string;
     classifier?: string;
     optional: boolean;
-    /** Set when the dependency is an artifact of this repository. */
+    /** Set when the dependency is an artifact on this server, preferably in the repository of the POM. */
     path?: string;
 }
 
@@ -279,7 +310,7 @@ export interface Pom extends Coordinates {
     scm?: { url?: string; tag?: string };
     issueManagement?: { system?: string; url: string };
     dependencies: PomDependency[];
-    /** Parents and imported BOMs that aren't in this repository. */
+    /** Parents and imported BOMs that aren't on this server. */
     unresolved: string[];
 }
 

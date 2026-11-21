@@ -43,7 +43,7 @@ func (h *handler) listArtifacts(c fiber.Ctx) error {
 }
 
 func (h *handler) artifactParam(c fiber.Ctx) (repository.Artifact, error) {
-	a, err := h.repos.Artifacts.Get(c.Context(), c.Params("groupId"), c.Params("artifactId"))
+	a, err := h.repos.Artifacts.Get(c.Context(), c.Params("repo"), c.Params("groupId"), c.Params("artifactId"))
 	if err != nil {
 		return a, repoError(err, "artifact")
 	}
@@ -67,7 +67,7 @@ func (h *handler) withSize(ctx context.Context, a repository.Artifact) (artifact
 	}
 	u, err := storage.Measure(h.repoFS, a.Path, paths)
 	if err != nil {
-		log.Printf("Measuring the size of %s:%s failed: %v", a.GroupID, a.ArtifactID, err)
+		log.Printf("Measuring the size of %s/%s:%s failed: %v", a.Repository, a.GroupID, a.ArtifactID, err)
 		return artifactWithSize{}, fiber.NewError(fiber.StatusInternalServerError)
 	}
 	return artifactWithSize{Artifact: a, Size: u.ByArtifact[a.Path]}, nil
@@ -87,6 +87,7 @@ func (h *handler) getArtifact(c fiber.Ctx) error {
 
 func (h *handler) createArtifact(c fiber.Ctx) error {
 	var req struct {
+		Repository            string  `json:"repository"`
 		GroupID               string  `json:"groupId"`
 		ArtifactID            string  `json:"artifactId"`
 		Public                bool    `json:"public"`
@@ -106,8 +107,14 @@ func (h *handler) createArtifact(c fiber.Ctx) error {
 		return err
 	}
 
-	a, err := h.repos.Artifacts.Create(c.Context(), req.GroupID, req.ArtifactID, req.Public, req.AllowReleaseOverwrite, req.Description)
+	if req.Repository == "" {
+		return fiber.NewError(fiber.StatusBadRequest, "repository is required")
+	}
+	a, err := h.repos.Artifacts.Create(c.Context(), req.Repository, req.GroupID, req.ArtifactID, req.Public, req.AllowReleaseOverwrite, req.Description)
 	if err != nil {
+		if errors.Is(err, repository.ErrNotFound) {
+			return fiber.NewError(fiber.StatusBadRequest, "repository "+req.Repository+" does not exist")
+		}
 		return repoError(err, "artifact")
 	}
 	return c.Status(fiber.StatusCreated).JSON(a)
@@ -148,7 +155,7 @@ func (h *handler) deleteArtifact(c fiber.Ctx) error {
 	}
 	if fiber.Query[bool](c, "deleteFiles") {
 		if err := h.deleteArtifactFiles(c.Context(), a); err != nil {
-			log.Printf("Deleting files of %s:%s failed: %v", a.GroupID, a.ArtifactID, err)
+			log.Printf("Deleting files of %s/%s:%s failed: %v", a.Repository, a.GroupID, a.ArtifactID, err)
 			return fiber.NewError(fiber.StatusInternalServerError)
 		}
 	}
@@ -217,10 +224,10 @@ func removeTreeExcept(root *os.Root, dir string, keep []string) error {
 	return nil
 }
 
-// removeEmptyParents removes dir and its parents up to the repository root for as long as they are empty, so deleting
-// com/example/demo doesn't leave an empty com/example behind.
+// removeEmptyParents removes dir and its parents up to the directory of its repository for as long as they are empty,
+// so deleting releases/com/example/demo doesn't leave an empty releases/com/example behind.
 func removeEmptyParents(root *os.Root, dir string) {
-	for ; dir != "." && dir != "/" && dir != ""; dir = path.Dir(dir) {
+	for ; strings.Contains(dir, "/"); dir = path.Dir(dir) {
 		if err := root.Remove(dir); err != nil && !errors.Is(err, fs.ErrNotExist) {
 			return
 		}

@@ -2,6 +2,7 @@ import { useMe } from '@/api/auth.ts';
 import { browseQuery, useBrowse, usePom } from '@/api/browse.ts';
 import { isApiError } from '@/api/client.ts';
 import type { Artifact, BrowseEntry, Pom, PomDependency } from '@/api/types.ts';
+import { RepositoryBadge } from '@/components/artifacts/RepositoryBadge.tsx';
 import { artifactSettingsUrl, useBackState } from '@/components/artifacts/urls.ts';
 import { EntryTable } from '@/components/browse/EntryTable.tsx';
 import { browseUrl, isJavadocJar } from '@/components/browse/paths.ts';
@@ -334,6 +335,7 @@ export function ArtifactDetail({ artifact, version: selected }: { artifact: Arti
                     <div className="flex flex-wrap items-center gap-2">
                         <h1 className="text-2xl font-semibold tracking-tight">{pom?.name || artifact.artifactId}</h1>
                         <Visibility isPublic={artifact.public} />
+                        <RepositoryBadge name={artifact.repository} />
                     </div>
                     <p className="font-mono text-sm break-all text-muted-foreground">
                         {artifact.groupId}:{artifact.artifactId}

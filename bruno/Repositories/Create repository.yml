@@ -1,0 +1,26 @@
+info:
+  name: Create repository
+  type: http
+  seq: 2
+
+http:
+  method: POST
+  url: "{{baseUrl}}/api/repositories"
+  body:
+    type: json
+    data: |-
+      {
+        "name": "snapshots",
+        "versionPolicy": "snapshot",
+        "description": "Nightly builds"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+docs: "`versionPolicy` is `release`, `snapshot` or `mixed` and decides which versions can be deployed. The name is lowercase letters, digits, `_` and `-`, cannot be changed later and must not be a path of the server or web UI, like `api` or `browse`."

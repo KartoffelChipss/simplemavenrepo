@@ -1,5 +1,6 @@
 import { useDownloadStats } from '@/api/stats.ts';
 import type { DownloadDays } from '@/api/types.ts';
+import { RepositoryBadge } from '@/components/artifacts/RepositoryBadge.tsx';
 import { artifactSettingsUrl, useBackState } from '@/components/artifacts/urls.ts';
 import { DOWNLOADS_DESCRIPTION } from '@/components/downloads/DownloadsCard.tsx';
 import { DownloadsChart, DownloadTotals, PeriodSelect } from '@/components/downloads/DownloadsChart.tsx';
@@ -49,6 +50,7 @@ export function DownloadStatsSection() {
                                                 <span className="text-muted-foreground">{artifact.groupId}:</span>
                                                 <span className="font-medium">{artifact.artifactId}</span>
                                             </Link>
+                                            <RepositoryBadge name={artifact.repository} />
                                             <span className="shrink-0 text-sm tabular-nums">
                                                 {artifact.downloads.toLocaleString()}
                                             </span>

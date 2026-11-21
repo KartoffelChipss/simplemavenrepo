@@ -1,5 +1,6 @@
 import { useStorageStats } from '@/api/stats.ts';
 import type { StorageStats } from '@/api/types.ts';
+import { RepositoryBadge } from '@/components/artifacts/RepositoryBadge.tsx';
 import { artifactSettingsUrl, useBackState } from '@/components/artifacts/urls.ts';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -38,6 +39,7 @@ function LargestArtifacts({ stats }: { stats: StorageStats }) {
                                 <span className="text-muted-foreground">{artifact.groupId}:</span>
                                 <span className="font-medium">{artifact.artifactId}</span>
                             </Link>
+                            <RepositoryBadge name={artifact.repository} />
                             <span className="shrink-0 text-sm tabular-nums">
                                 {formatBytes(artifact.size)}
                                 <span className="ml-2 inline-block w-12 text-right text-muted-foreground">

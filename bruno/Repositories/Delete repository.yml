@@ -1,0 +1,18 @@
+info:
+  name: Delete repository
+  type: http
+  seq: 5
+
+http:
+  method: DELETE
+  url: "{{baseUrl}}/api/repositories/{{repository}}?deleteFiles=false"
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+docs: "Fails with 409 while artifacts are registered in the repository. `deleteFiles=true` also removes its directory, which may still hold files of unregistered artifacts."

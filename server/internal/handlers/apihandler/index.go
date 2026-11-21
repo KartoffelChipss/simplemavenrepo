@@ -55,6 +55,7 @@ func RegisterApiRoutes(app *fiber.App, repos repository.Repositories, root *os.R
 	api.Get("/badge/:groupId/:artifactId", h.getBadge)
 	api.Get("/badge/:groupId/:artifactId/downloads", h.getDownloadsBadge)
 	api.Get("/settings", h.getSettings)
+	api.Get("/repositories", h.listRepos)
 
 	authenticate := auth.Authenticate(repos)
 
@@ -92,12 +93,18 @@ func RegisterApiRoutes(app *fiber.App, repos repository.Repositories, root *os.R
 	api.Get("/stats/storage", authenticate, auth.RequireAdmin, h.getStorageStats)
 	api.Get("/stats/downloads", authenticate, auth.RequireAdmin, h.getDownloadStats)
 
+	repositories := api.Group("/repositories", authenticate, auth.RequireAdmin)
+	repositories.Post("", h.createRepo)
+	repositories.Get("/:repo", h.getRepo)
+	repositories.Patch("/:repo", h.updateRepo)
+	repositories.Delete("/:repo", h.deleteRepo)
+
 	artifacts := api.Group("/artifacts", authenticate, auth.RequireAdmin)
 	artifacts.Get("", h.listArtifacts)
 	artifacts.Post("", h.createArtifact)
-	artifacts.Get("/:groupId/:artifactId", h.getArtifact)
-	artifacts.Patch("/:groupId/:artifactId", h.updateArtifact)
-	artifacts.Delete("/:groupId/:artifactId", h.deleteArtifact)
-	artifacts.Get("/:groupId/:artifactId/deploys", h.listDeploys)
-	artifacts.Get("/:groupId/:artifactId/downloads", h.getArtifactDownloads)
+	artifacts.Get("/:repo/:groupId/:artifactId", h.getArtifact)
+	artifacts.Patch("/:repo/:groupId/:artifactId", h.updateArtifact)
+	artifacts.Delete("/:repo/:groupId/:artifactId", h.deleteArtifact)
+	artifacts.Get("/:repo/:groupId/:artifactId/deploys", h.listDeploys)
+	artifacts.Get("/:repo/:groupId/:artifactId/downloads", h.getArtifactDownloads)
 }
