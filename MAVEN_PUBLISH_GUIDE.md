@@ -2,7 +2,8 @@
 
 Publishing requires a token whose user has a **write** grant on the artifact's path. The artifact must also be
 registered by an admin first, in the repository it is published to. Unregistered artifacts can't be uploaded or
-downloaded.
+downloaded, unless the repository has **Register artifacts on publish** turned on: then the first upload of an
+artifact registers it, as private or, with **Make them public**, as public. Publishing still needs the write grant.
 
 Every repository is served under its own path, e.g. `http://127.0.0.1:4321/releases`. A new server has one repository,
 `releases`, which accepts releases and snapshots. Admins can add more under **Repositories**, for example a

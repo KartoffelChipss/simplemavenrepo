@@ -66,6 +66,8 @@ func (h *handler) createRepo(c fiber.Ctx) error {
 		Name          string                   `json:"name"`
 		VersionPolicy repository.VersionPolicy `json:"versionPolicy"`
 		Description   *string                  `json:"description"`
+		AutoRegister  bool                     `json:"autoRegister"`
+		DefaultPublic bool                     `json:"defaultPublic"`
 	}
 	if err := bindJSON(c, &req); err != nil {
 		return err
@@ -80,7 +82,12 @@ func (h *handler) createRepo(c fiber.Ctx) error {
 		return err
 	}
 
-	r, err := h.repos.Repos.Create(c.Context(), req.Name, req.VersionPolicy, req.Description)
+	r, err := h.repos.Repos.Create(c.Context(), req.Name, repository.RepoOptions{
+		VersionPolicy: &req.VersionPolicy,
+		Description:   req.Description,
+		AutoRegister:  &req.AutoRegister,
+		DefaultPublic: &req.DefaultPublic,
+	})
 	if err != nil {
 		return repoError(err, "repository")
 	}
@@ -94,6 +101,8 @@ func (h *handler) updateRepo(c fiber.Ctx) error {
 	var req struct {
 		VersionPolicy *repository.VersionPolicy `json:"versionPolicy"`
 		Description   *string                   `json:"description"`
+		AutoRegister  *bool                     `json:"autoRegister"`
+		DefaultPublic *bool                     `json:"defaultPublic"`
 	}
 	if err := bindJSON(c, &req); err != nil {
 		return err
@@ -111,7 +120,12 @@ func (h *handler) updateRepo(c fiber.Ctx) error {
 	if err != nil {
 		return err
 	}
-	r, err = h.repos.Repos.Update(c.Context(), r.ID, req.VersionPolicy, req.Description)
+	r, err = h.repos.Repos.Update(c.Context(), r.ID, repository.RepoOptions{
+		VersionPolicy: req.VersionPolicy,
+		Description:   req.Description,
+		AutoRegister:  req.AutoRegister,
+		DefaultPublic: req.DefaultPublic,
+	})
 	if err != nil {
 		return repoError(err, "repository")
 	}

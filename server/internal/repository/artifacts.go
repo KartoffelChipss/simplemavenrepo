@@ -3,9 +3,21 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"regexp"
 	"strings"
 	"time"
 )
+
+var (
+	groupIDPattern    = regexp.MustCompile(`^[A-Za-z0-9_-]+(\.[A-Za-z0-9_-]+)*$`)
+	artifactIDPattern = regexp.MustCompile(`^[A-Za-z0-9_-][A-Za-z0-9_.-]*$`)
+)
+
+// ValidGroupID reports whether id is dot-separated parts of letters, digits, '_' or '-'.
+func ValidGroupID(id string) bool { return groupIDPattern.MatchString(id) }
+
+// ValidArtifactID reports whether id consists of letters, digits, '.', '_' or '-' and doesn't start with '.'.
+func ValidArtifactID(id string) bool { return artifactIDPattern.MatchString(id) }
 
 type Artifact struct {
 	ID                    int64     `json:"id"`

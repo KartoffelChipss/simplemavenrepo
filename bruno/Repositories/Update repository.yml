@@ -11,7 +11,8 @@ http:
     data: |-
       {
         "versionPolicy": "mixed",
-        "description": ""
+        "description": "",
+        "autoRegister": true
       }
   auth: inherit
 

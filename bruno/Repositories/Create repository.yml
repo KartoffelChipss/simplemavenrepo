@@ -12,7 +12,9 @@ http:
       {
         "name": "snapshots",
         "versionPolicy": "snapshot",
-        "description": "Nightly builds"
+        "description": "Nightly builds",
+        "autoRegister": true,
+        "defaultPublic": false
       }
   auth: inherit
 
@@ -23,4 +25,4 @@ settings:
   maxRedirects: 5
   forwardAuthorizationHeader: true
 
-docs: "`versionPolicy` is `release`, `snapshot` or `mixed` and decides which versions can be deployed. The name is lowercase letters, digits, `_` and `-`, cannot be changed later and must not be a path of the server or web UI, like `api` or `browse`."
+docs: "`versionPolicy` is `release`, `snapshot` or `mixed` and decides which versions can be deployed. With `autoRegister`, deploying to an unregistered artifact registers it, as public if `defaultPublic` is set. The name is lowercase letters, digits, `_` and `-`, cannot be changed later and must not be a path of the server or web UI, like `api` or `browse`."

@@ -188,7 +188,7 @@ func TestArtifacts(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := r.Repos.Create(ctx, "snapshots", PolicySnapshot, nil); err != nil {
+	if _, err := r.Repos.Create(ctx, "snapshots", RepoOptions{VersionPolicy: ptr(PolicySnapshot)}); err != nil {
 		t.Fatal(err)
 	}
 	snapshot, err := r.Artifacts.Create(ctx, "snapshots", "com.example", "demo", false, false, nil)
@@ -374,18 +374,21 @@ func TestRepos(t *testing.T) {
 		t.Fatalf("the migration should create the releases repository: %+v, %v", all, err)
 	}
 	desc := "Nightly builds"
-	snapshots, err := r.Repos.Create(ctx, "snapshots", PolicySnapshot, &desc)
+	snapshots, err := r.Repos.Create(ctx, "snapshots", RepoOptions{VersionPolicy: ptr(PolicySnapshot), Description: &desc})
 	if err != nil || snapshots.Description == nil || *snapshots.Description != desc {
 		t.Fatalf("Create = %+v, %v", snapshots, err)
 	}
-	if _, err := r.Repos.Create(ctx, "snapshots", PolicyMixed, nil); !errors.Is(err, ErrConflict) {
+	if _, err := r.Repos.Create(ctx, "snapshots", RepoOptions{}); !errors.Is(err, ErrConflict) {
 		t.Fatalf("duplicate repository: got %v, want ErrConflict", err)
 	}
 
 	release := PolicyRelease
 	empty := ""
-	updated, err := r.Repos.Update(ctx, snapshots.ID, &release, &empty)
-	if err != nil || updated.VersionPolicy != PolicyRelease || updated.Description != nil {
+	if snapshots.AutoRegister || snapshots.DefaultPublic {
+		t.Fatalf("auto registration must be off by default: %+v", snapshots)
+	}
+	updated, err := r.Repos.Update(ctx, snapshots.ID, RepoOptions{VersionPolicy: &release, Description: &empty, AutoRegister: ptr(true)})
+	if err != nil || updated.VersionPolicy != PolicyRelease || updated.Description != nil || !updated.AutoRegister || updated.DefaultPublic {
 		t.Fatalf("Update = %+v, %v", updated, err)
 	}
 
@@ -426,3 +429,5 @@ func TestVersionPolicy(t *testing.T) {
 		}
 	}
 }
+
+func ptr[T any](v T) *T { return &v }

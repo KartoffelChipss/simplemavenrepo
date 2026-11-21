@@ -12,10 +12,11 @@ import {
     DialogTitle,
     DialogTrigger,
 } from '@/components/ui/dialog';
-import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field';
+import { Field, FieldContent, FieldDescription, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Spinner } from '@/components/ui/spinner';
+import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from '@/components/ui/toast';
 import { useState, type FormEvent, type ReactElement } from 'react';
@@ -64,6 +65,8 @@ function RepositoryForm({ repository, onDone }: { repository?: Repository; onDon
     const [name, setName] = useState(repository?.name ?? '');
     const [versionPolicy, setVersionPolicy] = useState<VersionPolicy>(repository?.versionPolicy ?? 'release');
     const [description, setDescription] = useState(repository?.description ?? '');
+    const [autoRegister, setAutoRegister] = useState(repository?.autoRegister ?? false);
+    const [defaultPublic, setDefaultPublic] = useState(repository?.defaultPublic ?? false);
     const create = useCreateRepository();
     const update = useUpdateRepository();
     const mutation = editing ? update : create;
@@ -78,9 +81,21 @@ function RepositoryForm({ repository, onDone }: { repository?: Repository; onDon
             onDone();
         };
         if (editing) {
-            update.mutate({ name: repository.name, versionPolicy, description: description.trim() }, { onSuccess });
+            update.mutate(
+                { name: repository.name, versionPolicy, description: description.trim(), autoRegister, defaultPublic },
+                { onSuccess }
+            );
         } else {
-            create.mutate({ name: name.trim(), versionPolicy, description: description.trim() || null }, { onSuccess });
+            create.mutate(
+                {
+                    name: name.trim(),
+                    versionPolicy,
+                    description: description.trim() || null,
+                    autoRegister,
+                    defaultPublic,
+                },
+                { onSuccess }
+            );
         }
     }
 
@@ -149,6 +164,31 @@ function RepositoryForm({ repository, onDone }: { repository?: Repository; onDon
                         onChange={(e) => setDescription(e.target.value)}
                     />
                 </Field>
+                <Field orientation="horizontal">
+                    <FieldContent>
+                        <FieldLabel htmlFor="repository-auto-register">Register artifacts on publish</FieldLabel>
+                        <FieldDescription>
+                            Publishing an unregistered artifact registers it instead of being rejected. Publishing still
+                            needs write access to its path.
+                        </FieldDescription>
+                    </FieldContent>
+                    <Switch id="repository-auto-register" checked={autoRegister} onCheckedChange={setAutoRegister} />
+                </Field>
+                {autoRegister && (
+                    <Field orientation="horizontal">
+                        <FieldContent>
+                            <FieldLabel htmlFor="repository-default-public">Make them public</FieldLabel>
+                            <FieldDescription>
+                                Artifacts registered on publish can be downloaded without a token.
+                            </FieldDescription>
+                        </FieldContent>
+                        <Switch
+                            id="repository-default-public"
+                            checked={defaultPublic}
+                            onCheckedChange={setDefaultPublic}
+                        />
+                    </Field>
+                )}
                 {mutation.error && <FieldError>{mutation.error.message}</FieldError>}
             </FieldGroup>
             <DialogFooter>

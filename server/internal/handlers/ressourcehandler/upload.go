@@ -105,25 +105,36 @@ func upload(c fiber.Ctx, root *os.Root, repos repository.Repositories, d *deploy
 
 	// Checked after authorization so only users with write access learn which artifacts are registered
 	artifact, err := repos.Artifacts.FindByPath(c.Context(), fullPath)
-	if err != nil {
-		if errors.Is(err, repository.ErrNotFound) {
-			// Not 404: Maven reports that as "Could not find artifact" and drops the message
-			return fiber.NewError(fiber.StatusForbidden,
-				coordinatesOf(relPath)+" is not registered in repository "+repo.Name+", an admin has to register it first")
-		}
+	registered := err == nil
+	if err != nil && !errors.Is(err, repository.ErrNotFound) {
 		log.Printf("Looking up artifact for %s failed: %v", fullPath, err)
 		return fiber.ErrInternalServerError
+	}
+	// Checksums and metadata follow the files they belong to, so an unregistered artifact is only registered by a file
+	if !registered && (!repo.AutoRegister || isIgnoredUpload(relPath)) {
+		// Not 404: Maven reports that as "Could not find artifact" and drops the message
+		return fiber.NewError(fiber.StatusForbidden,
+			coordinatesOf(relPath)+" is not registered in repository "+repo.Name+", an admin has to register it first")
 	}
 
 	if isIgnoredUpload(relPath) {
 		return c.SendStatus(fiber.StatusNoContent)
 	}
-	d.artifact, d.relPath = &artifact, fullPath
+	if registered {
+		d.artifact, d.relPath = &artifact, fullPath
+	}
 	if version := path.Base(path.Dir(relPath)); !repo.VersionPolicy.Allows(version) {
 		return fiber.NewError(fiber.StatusBadRequest, policyError(repo, version))
 	}
 	if !hasStoredExtension(relPath) {
 		return fiber.NewError(fiber.StatusUnsupportedMediaType, "only "+strings.Join(storedExtensions, ", ")+" files can be uploaded")
+	}
+	// Registered only once the upload passed the checks, so a rejected one doesn't leave an artifact behind
+	if !registered {
+		if artifact, err = autoRegister(c, repos, repo, relPath); err != nil {
+			return err
+		}
+		d.artifact, d.relPath = &artifact, fullPath
 	}
 
 	if err := root.MkdirAll(repo.Name, 0o755); err != nil {
@@ -170,6 +181,27 @@ func upload(c fiber.Ctx, root *os.Root, repos repository.Repositories, d *deploy
 		d.size = &size
 	}
 	return c.SendStatus(fiber.StatusCreated)
+}
+
+// autoRegister registers the artifact of the upload path relPath in repo, which must allow it.
+func autoRegister(c fiber.Ctx, repos repository.Repositories, repo repository.Repo, relPath string) (repository.Artifact, error) {
+	groupID, artifactID, _ := strings.Cut(coordinatesOf(relPath), ":")
+	if !repository.ValidGroupID(groupID) || !repository.ValidArtifactID(artifactID) {
+		return repository.Artifact{}, fiber.NewError(fiber.StatusBadRequest, coordinatesOf(relPath)+" is not a valid groupId:artifactId")
+	}
+
+	artifact, err := repos.Artifacts.Create(c.Context(), repo.Name, groupID, artifactID, repo.DefaultPublic, false, nil)
+	if errors.Is(err, repository.ErrConflict) {
+		// Registered by a concurrent upload in the meantime
+		artifact, err = repos.Artifacts.Get(c.Context(), repo.Name, groupID, artifactID)
+	} else if err == nil {
+		log.Printf("Registered %s:%s in repository %s on deploy by %s", groupID, artifactID, repo.Name, auth.CurrentUser(c).Username)
+	}
+	if err != nil {
+		log.Printf("Registering %s:%s in repository %s failed: %v", groupID, artifactID, repo.Name, err)
+		return repository.Artifact{}, fiber.ErrInternalServerError
+	}
+	return artifact, nil
 }
 
 // coordinatesOf returns groupId:artifactId of a valid upload path <group path>/<artifactId>/<version>/<file>.

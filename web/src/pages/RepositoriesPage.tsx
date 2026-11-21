@@ -172,9 +172,16 @@ export function RepositoriesPage() {
                                         )}
                                     </TableCell>
                                     <TableCell>
-                                        <Badge variant="secondary">
-                                            {versionPolicyLabels[repository.versionPolicy]}
-                                        </Badge>
+                                        <div className="flex flex-wrap gap-1">
+                                            <Badge variant="secondary">
+                                                {versionPolicyLabels[repository.versionPolicy]}
+                                            </Badge>
+                                            {repository.autoRegister && (
+                                                <Badge variant="outline">
+                                                    Auto register{repository.defaultPublic ? ', public' : ''}
+                                                </Badge>
+                                            )}
+                                        </div>
                                     </TableCell>
                                     <TableCell className="hidden text-right tabular-nums sm:table-cell">
                                         {artifacts ? artifactCount(repository.name) : ''}

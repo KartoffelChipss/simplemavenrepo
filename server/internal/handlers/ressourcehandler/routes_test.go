@@ -19,9 +19,10 @@ import (
 )
 
 type testServer struct {
-	app  *fiber.App
-	dir  string
-	auth string
+	app   *fiber.App
+	repos repository.Repositories
+	dir   string
+	auth  string
 }
 
 func newTestServer(t *testing.T) testServer {
@@ -50,7 +51,7 @@ func newTestServer(t *testing.T) testServer {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := repos.Repos.Create(ctx, "snapshots", repository.PolicySnapshot, nil); err != nil {
+	if _, err := repos.Repos.Create(ctx, "snapshots", repository.RepoOptions{VersionPolicy: ptr(repository.PolicySnapshot)}); err != nil {
 		t.Fatal(err)
 	}
 	for _, repo := range []string{"releases", "snapshots"} {
@@ -63,7 +64,7 @@ func newTestServer(t *testing.T) testServer {
 	RegisterRessourceRoutes(app, repos, root)
 	// Stands in for the web UI, which gets every path that isn't a repository
 	app.Get("/*", func(c fiber.Ctx) error { return c.SendString("web ui") })
-	return testServer{app: app, dir: dir, auth: "Basic " + base64.StdEncoding.EncodeToString([]byte("admin:"+secret))}
+	return testServer{app: app, repos: repos, dir: dir, auth: "Basic " + base64.StdEncoding.EncodeToString([]byte("admin:"+secret))}
 }
 
 func (s testServer) do(t *testing.T, method, target, body string) (int, string) {
@@ -147,6 +148,60 @@ func TestRepositoryRoutes(t *testing.T) {
 		t.Errorf("the metadata must not contain the repository in the groupId: %s, %v", metadata, err)
 	}
 }
+
+func TestAutoRegister(t *testing.T) {
+	s := newTestServer(t)
+	ctx := context.Background()
+	if _, err := s.repos.Repos.Create(ctx, "public", repository.RepoOptions{AutoRegister: ptr(true), DefaultPublic: ptr(true)}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.repos.Repos.Create(ctx, "private", repository.RepoOptions{VersionPolicy: ptr(repository.PolicyRelease), AutoRegister: ptr(true)}); err != nil {
+		t.Fatal(err)
+	}
+
+	tests := []struct {
+		method, target string
+		wantStatus     int
+		wantBody       string
+	}{
+		// Checksums and metadata don't register an artifact, only the files they belong to
+		{fiber.MethodPut, "/public/org/acme/lib/1.0/lib-1.0.jar.sha1", fiber.StatusForbidden, "org.acme:lib is not registered"},
+		{fiber.MethodPut, "/public/org/acme/lib/maven-metadata.xml", fiber.StatusForbidden, "is not registered"},
+		// A rejected upload doesn't register it either
+		{fiber.MethodPut, "/private/org/acme/lib/1.0-SNAPSHOT/lib-1.0-20260101.120000-1.jar", fiber.StatusBadRequest, "only accepts release versions"},
+		{fiber.MethodPut, "/private/org/acme/lib/1.0/lib-1.0.txt", fiber.StatusUnsupportedMediaType, ""},
+		{fiber.MethodPut, "/public/org/acme/lib/1.0/lib-1.0.jar", fiber.StatusCreated, ""},
+		{fiber.MethodPut, "/public/org/acme/lib/1.0/lib-1.0.jar.sha1", fiber.StatusNoContent, ""},
+		{fiber.MethodPut, "/public/org/acme/lib/1.0/lib-1.0.pom", fiber.StatusCreated, ""},
+		{fiber.MethodGet, "/public/org/acme/lib/1.0/lib-1.0.jar", fiber.StatusOK, "release"},
+		{fiber.MethodPut, "/private/org/acme/lib/1.0/lib-1.0.jar", fiber.StatusCreated, ""},
+		// Registered as private, so downloading needs a token
+		{fiber.MethodGet, "/private/org/acme/lib/1.0/lib-1.0.jar", fiber.StatusUnauthorized, ""},
+		// Repositories without auto registration still require registering first
+		{fiber.MethodPut, "/releases/org/acme/lib/1.0/lib-1.0.jar", fiber.StatusForbidden, "is not registered"},
+	}
+	for _, tt := range tests {
+		status, got := s.do(t, tt.method, tt.target, "release")
+		if status != tt.wantStatus || !strings.Contains(got, tt.wantBody) {
+			t.Errorf("%s %s = %d %q, want %d containing %q", tt.method, tt.target, status, got, tt.wantStatus, tt.wantBody)
+		}
+	}
+
+	for repo, wantPublic := range map[string]bool{"public": true, "private": false} {
+		a, err := s.repos.Artifacts.Get(ctx, repo, "org.acme", "lib")
+		if err != nil || a.Public != wantPublic || a.AllowReleaseOverwrite {
+			t.Errorf("artifact in %s = %+v, %v, want public %v", repo, a, err, wantPublic)
+		}
+		if entries, _, err := s.repos.Deploys.List(ctx, a.Path, 0, 10); err != nil || len(entries) == 0 {
+			t.Errorf("deploy log of %s = %v, %v, want the registering upload", a.Path, entries, err)
+		}
+	}
+	if _, err := s.repos.Artifacts.Get(ctx, "releases", "org.acme", "lib"); err == nil {
+		t.Error("the artifact must not be registered in releases")
+	}
+}
+
+func ptr[T any](v T) *T { return &v }
 
 func TestReasonPhrase(t *testing.T) {
 	if got := reasonPhrase("line\r\nbreak – ü"); got != "line  break    " {

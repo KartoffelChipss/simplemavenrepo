@@ -7,17 +7,11 @@ import (
 	"log"
 	"os"
 	"path"
-	"regexp"
 	"simplemavenrepo/internal/repository"
 	"simplemavenrepo/internal/storage"
 	"strings"
 
 	"github.com/gofiber/fiber/v3"
-)
-
-var (
-	groupIDPattern    = regexp.MustCompile(`^[A-Za-z0-9_-]+(\.[A-Za-z0-9_-]+)*$`)
-	artifactIDPattern = regexp.MustCompile(`^[A-Za-z0-9_-][A-Za-z0-9_.-]*$`)
 )
 
 const maxDescriptionLength = 1000
@@ -97,10 +91,10 @@ func (h *handler) createArtifact(c fiber.Ctx) error {
 	if err := bindJSON(c, &req); err != nil {
 		return err
 	}
-	if !groupIDPattern.MatchString(req.GroupID) {
+	if !repository.ValidGroupID(req.GroupID) {
 		return fiber.NewError(fiber.StatusBadRequest, "groupId must be dot-separated parts of letters, digits, '_' or '-'")
 	}
-	if !artifactIDPattern.MatchString(req.ArtifactID) {
+	if !repository.ValidArtifactID(req.ArtifactID) {
 		return fiber.NewError(fiber.StatusBadRequest, "artifactId must consist of letters, digits, '.', '_' or '-' and must not start with '.'")
 	}
 	if err := validateDescription(req.Description); err != nil {

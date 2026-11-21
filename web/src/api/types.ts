@@ -78,6 +78,8 @@ export interface Repository {
     description: string | null;
     /** Which versions can be deployed: only releases, only snapshots or both. */
     versionPolicy: VersionPolicy;
+    autoRegister: boolean;
+    defaultPublic: boolean;
     createdAt: string;
 }
 
@@ -210,12 +212,16 @@ export interface CreateRepositoryRequest {
     name: string;
     versionPolicy: VersionPolicy;
     description?: string | null;
+    autoRegister?: boolean;
+    defaultPublic?: boolean;
 }
 
 /** An empty description clears it, a missing field leaves it unchanged. */
 export interface UpdateRepositoryRequest {
     versionPolicy?: VersionPolicy;
     description?: string;
+    autoRegister?: boolean;
+    defaultPublic?: boolean;
 }
 
 export interface CreateArtifactRequest {

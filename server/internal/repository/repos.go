@@ -38,6 +38,8 @@ type Repo struct {
 	Name          string        `json:"name"`
 	Description   *string       `json:"description"`
 	VersionPolicy VersionPolicy `json:"versionPolicy"`
+	AutoRegister  bool          `json:"autoRegister"`
+	DefaultPublic bool          `json:"defaultPublic"`
 	CreatedAt     time.Time     `json:"createdAt"`
 }
 
@@ -45,13 +47,13 @@ type RepoRepository struct {
 	db *sql.DB
 }
 
-const repoColumns = `id, name, description, version_policy, created_at`
+const repoColumns = `id, name, description, version_policy, auto_register, default_public, created_at`
 
 func scanRepo(s scanner) (Repo, error) {
 	var r Repo
 	var description sql.NullString
 	var createdAt int64
-	if err := s.Scan(&r.ID, &r.Name, &description, &r.VersionPolicy, &createdAt); err != nil {
+	if err := s.Scan(&r.ID, &r.Name, &description, &r.VersionPolicy, &r.AutoRegister, &r.DefaultPublic, &createdAt); err != nil {
 		return Repo{}, mapErr(err)
 	}
 	if description.Valid {
@@ -61,11 +63,24 @@ func scanRepo(s scanner) (Repo, error) {
 	return r, nil
 }
 
-func (r *RepoRepository) Create(ctx context.Context, name string, policy VersionPolicy, description *string) (Repo, error) {
+type RepoOptions struct {
+	VersionPolicy *VersionPolicy
+	Description   *string
+	AutoRegister  *bool
+	DefaultPublic *bool
+}
+
+// Create adds a repository. Unset options get their defaults: mixed versions and no auto registration.
+func (r *RepoRepository) Create(ctx context.Context, name string, opts RepoOptions) (Repo, error) {
+	policy := PolicyMixed
+	if opts.VersionPolicy != nil {
+		policy = *opts.VersionPolicy
+	}
 	return scanRepo(r.db.QueryRowContext(ctx, `
-		INSERT INTO repositories (name, version_policy, description, created_at)
-		VALUES (?, ?, ?, ?) RETURNING `+repoColumns,
-		name, policy, toNullString(description), toUnix(time.Now())))
+		INSERT INTO repositories (name, version_policy, description, auto_register, default_public, created_at)
+		VALUES (?, ?, ?, ?, ?, ?) RETURNING `+repoColumns,
+		name, policy, toNullString(opts.Description), opts.AutoRegister != nil && *opts.AutoRegister,
+		opts.DefaultPublic != nil && *opts.DefaultPublic, toUnix(time.Now())))
 }
 
 func (r *RepoRepository) Get(ctx context.Context, name string) (Repo, error) {
@@ -90,14 +105,16 @@ func (r *RepoRepository) List(ctx context.Context) ([]Repo, error) {
 	return repos, rows.Err()
 }
 
-// Update changes the version policy and the description. nil leaves a field unchanged, an empty description clears it.
-func (r *RepoRepository) Update(ctx context.Context, id int64, policy *VersionPolicy, description *string) (Repo, error) {
+// Update changes the options that are set.
+func (r *RepoRepository) Update(ctx context.Context, id int64, opts RepoOptions) (Repo, error) {
 	return scanRepo(r.db.QueryRowContext(ctx, `
 		UPDATE repositories SET
 			version_policy = COALESCE(?, version_policy),
-			description = CASE WHEN ? THEN ? ELSE description END
+			description = CASE WHEN ? THEN ? ELSE description END,
+			auto_register = COALESCE(?, auto_register),
+			default_public = COALESCE(?, default_public)
 		WHERE id = ? RETURNING `+repoColumns,
-		policy, description != nil, toNullString(description), id))
+		opts.VersionPolicy, opts.Description != nil, toNullString(opts.Description), opts.AutoRegister, opts.DefaultPublic, id))
 }
 
 // Delete removes the repository. It fails with ErrConflict while artifacts are registered in it.
