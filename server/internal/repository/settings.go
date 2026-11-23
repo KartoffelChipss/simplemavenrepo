@@ -8,8 +8,8 @@ import (
 type Settings struct {
 	Name        *string `json:"name"`
 	Description *string `json:"description"`
-	OSVEnabled bool    `json:"osvEnabled"`
-	OSVURL     *string `json:"osvUrl"`
+	OSVEnabled  bool    `json:"osvEnabled"`
+	OSVURL      *string `json:"osvUrl"`
 }
 
 type SettingsUpdate struct {
