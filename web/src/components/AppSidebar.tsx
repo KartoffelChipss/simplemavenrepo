@@ -97,6 +97,13 @@ function UserMenu() {
         return (
             <SidebarMenu>
                 <SidebarMenuItem>
+                    <SidebarMenuButton tooltip="About" onClick={() => setAboutOpen(true)}>
+                        <Info />
+                        <span>About</span>
+                    </SidebarMenuButton>
+                    <AboutDialog isAdmin={false} open={aboutOpen} onOpenChange={setAboutOpen} />
+                </SidebarMenuItem>
+                <SidebarMenuItem>
                     <SidebarMenuButton tooltip="Log in" render={<Link to="/login" />}>
                         <LogIn />
                         <span>Log in</span>
