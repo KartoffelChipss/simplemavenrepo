@@ -77,6 +77,18 @@ You need [Docker](https://docs.docker.com/get-docker/) with Docker Compose.
 
 The repository files and the configuration are stored in the `repo` and `config` Docker volumes.
 
+The server runs as user `1000:1000`. On every start the container makes sure all files in `/data/repo` and
+`/data/config` belong to that user, so you can copy existing files into a volume or bind mount without fixing
+permissions yourself. To use a different user, for example to match the owner of a bind mounted folder on the
+host, set `PUID` and `PGID`:
+
+```bash
+PUID=1001 PGID=1001 docker compose up -d
+```
+
+If you start the container with an explicit `--user` (or `user:` in Compose), it runs as that user and leaves
+file ownership alone.
+
 ## License
 
 simplemavenrepo is licensed under the [GNU General Public License v3.0](LICENSE).

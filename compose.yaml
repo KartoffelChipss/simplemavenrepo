@@ -11,6 +11,8 @@ services:
         environment:
             SMR_BODY_LIMIT: ${SMR_BODY_LIMIT:-512MB}
             SMR_TRUSTED_PROXIES: ${SMR_TRUSTED_PROXIES:-}
+            PUID: ${PUID:-1000}
+            PGID: ${PGID:-1000}
         volumes:
             - repo:/data/repo
             - config:/data/config

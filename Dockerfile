@@ -25,18 +25,21 @@ RUN --mount=type=cache,target=/go/pkg/mod \
 
 FROM alpine:3.22
 ARG VERSION=""
-RUN addgroup -S smr && adduser -S -G smr -H smr \
+RUN apk add --no-cache su-exec \
+    && addgroup -S -g 1000 smr && adduser -S -u 1000 -G smr -H smr \
     && mkdir -p /data/repo /data/config \
     && chown -R smr:smr /data
 COPY --from=server /out/simplemavenrepo /usr/local/bin/simplemavenrepo
+COPY --chmod=755 docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 
 ENV SMR_HOST=0.0.0.0 \
     SMR_PORT=4321 \
     SMR_REPO_PATH=/data/repo \
     SMR_CONFIG_PATH=/data/config \
-    SMR_VERSION=${VERSION}
+    SMR_VERSION=${VERSION} \
+    PUID=1000 \
+    PGID=1000
 
-USER smr
 WORKDIR /data
 VOLUME ["/data/repo", "/data/config"]
 EXPOSE 4321
@@ -44,4 +47,4 @@ EXPOSE 4321
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s \
     CMD wget -q --spider "http://127.0.0.1:${SMR_PORT}/livez" || exit 1
 
-ENTRYPOINT ["simplemavenrepo"]
+ENTRYPOINT ["docker-entrypoint.sh"]
