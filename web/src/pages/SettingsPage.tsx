@@ -13,10 +13,17 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from '@/components/ui/toast';
 import { useState, type FormEvent } from 'react';
+import { useLocation, useSearchParams } from 'react-router';
 
 const MAX_NAME_LENGTH = 64;
 const MAX_DESCRIPTION_LENGTH = 20000;
 const DEFAULT_OSV_URL = 'https://api.osv.dev';
+
+const TABS = [
+    { value: 'general', label: 'General' },
+    { value: 'vulnerabilities', label: 'Vulnerabilities' },
+] as const;
+type Tab = (typeof TABS)[number]['value'];
 
 function SettingsForm({ settings }: { settings: Settings }) {
     const [name, setName] = useState(settings.name ?? '');
@@ -170,6 +177,13 @@ function VulnerabilitySettingsForm({ settings }: { settings: Settings }) {
 
 export function SettingsPage() {
     const { data: settings, error, isPending } = useSettings();
+    const location = useLocation();
+    const [searchParams, setSearchParams] = useSearchParams();
+    const tabParam = searchParams.get('tab');
+    const tab: Tab = TABS.find((t) => t.value === tabParam)?.value ?? 'general';
+
+    const setTab = (t: string) =>
+        setSearchParams(t === 'general' ? {} : { tab: t }, { replace: true, state: location.state as unknown });
 
     return (
         <>
@@ -177,10 +191,24 @@ export function SettingsPage() {
             {isPending && <Skeleton className="h-96" />}
             {error && <p className="text-destructive">{error.message}</p>}
             {settings && (
-                <div className="flex flex-col gap-6">
-                    <SettingsForm key={`${settings.name}|${settings.description}`} settings={settings} />
-                    <VulnerabilitySettingsForm key={`${settings.osvEnabled}|${settings.osvUrl}`} settings={settings} />
-                </div>
+                <Tabs value={tab} onValueChange={setTab} className="gap-4">
+                    <TabsList variant="line" className="w-full justify-start border-b">
+                        {TABS.map((t) => (
+                            <TabsTrigger key={t.value} value={t.value} className="flex-none">
+                                {t.label}
+                            </TabsTrigger>
+                        ))}
+                    </TabsList>
+                    <TabsContent value="general" keepMounted className="max-w-3xl">
+                        <SettingsForm key={`${settings.name}|${settings.description}`} settings={settings} />
+                    </TabsContent>
+                    <TabsContent value="vulnerabilities" keepMounted className="max-w-3xl">
+                        <VulnerabilitySettingsForm
+                            key={`${settings.osvEnabled}|${settings.osvUrl}`}
+                            settings={settings}
+                        />
+                    </TabsContent>
+                </Tabs>
             )}
         </>
     );
