@@ -46,7 +46,7 @@ export function ArtifactsPage() {
         const q = search.trim().toLowerCase();
         if (!artifacts || !q) return artifacts;
         return artifacts.filter((a) =>
-            [coordinates(a), a.description ?? ''].some((text) => text.toLowerCase().includes(q))
+            [coordinates(a), a.repository, a.description ?? ''].some((text) => text.toLowerCase().includes(q))
         );
     }, [artifacts, search]);
 
@@ -105,6 +105,7 @@ export function ArtifactsPage() {
                             <TableHeader>
                                 <TableRow>
                                     <TableHead>Artifact</TableHead>
+                                    <TableHead>Repository</TableHead>
                                     <TableHead>Visibility</TableHead>
                                     <TableHead>Registered</TableHead>
                                     <TableHead className="w-0">
@@ -115,7 +116,7 @@ export function ArtifactsPage() {
                             <TableBody>
                                 {filtered.length === 0 && (
                                     <TableRow>
-                                        <TableCell colSpan={4} className="h-20 text-center text-muted-foreground">
+                                        <TableCell colSpan={5} className="h-20 text-center text-muted-foreground">
                                             No artifacts match “{search.trim()}”.
                                         </TableCell>
                                     </TableRow>
@@ -143,6 +144,7 @@ export function ArtifactsPage() {
                                                     </p>
                                                 )}
                                             </TableCell>
+                                            <TableCell className="font-mono text-sm">{artifact.repository}</TableCell>
                                             <TableCell>
                                                 <Visibility isPublic={artifact.public} />
                                             </TableCell>

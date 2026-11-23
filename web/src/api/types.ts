@@ -11,6 +11,8 @@ export interface Settings {
     name: string | null;
     /** Markdown shown on the home page. */
     description: string | null;
+    osvEnabled: boolean;
+    osvUrl: string | null;
 }
 
 export interface User {
@@ -69,9 +71,29 @@ export interface CreatedToken extends Token {
     token: string;
 }
 
-export interface Artifact {
+export type VersionPolicy = 'release' | 'snapshot' | 'mixed';
+
+/** A Maven repository, served under /<name>. */
+export interface Repository {
     id: number;
+    name: string;
+    description: string | null;
+    /** Which versions can be deployed: only releases, only snapshots or both. */
+    versionPolicy: VersionPolicy;
+    autoRegister: boolean;
+    defaultPublic: boolean;
+    createdAt: string;
+}
+
+/** Identifies an artifact: the same coordinates can be registered in several repositories. */
+export interface ArtifactRef {
+    repository: string;
     groupId: string;
+    artifactId: string;
+}
+
+export interface Artifact extends ArtifactRef {
+    id: number;
     artifactId: string;
     path: string;
     public: boolean;
@@ -188,7 +210,24 @@ export interface GrantFilter {
     team?: string;
 }
 
+export interface CreateRepositoryRequest {
+    name: string;
+    versionPolicy: VersionPolicy;
+    description?: string | null;
+    autoRegister?: boolean;
+    defaultPublic?: boolean;
+}
+
+/** An empty description clears it, a missing field leaves it unchanged. */
+export interface UpdateRepositoryRequest {
+    versionPolicy?: VersionPolicy;
+    description?: string;
+    autoRegister?: boolean;
+    defaultPublic?: boolean;
+}
+
 export interface CreateArtifactRequest {
+    repository: string;
     groupId: string;
     artifactId: string;
     public?: boolean;
@@ -206,6 +245,8 @@ export interface UpdateArtifactRequest {
 export interface UpdateSettingsRequest {
     name?: string;
     description?: string;
+    osvEnabled?: boolean;
+    osvUrl?: string;
 }
 
 export type BrowseEntryType = 'directory' | 'file';
@@ -263,7 +304,7 @@ export interface PomDependency {
     type?: string;
     classifier?: string;
     optional: boolean;
-    /** Set when the dependency is an artifact of this repository. */
+    /** Set when the dependency is an artifact on this server, preferably in the repository of the POM. */
     path?: string;
 }
 
@@ -279,8 +320,42 @@ export interface Pom extends Coordinates {
     scm?: { url?: string; tag?: string };
     issueManagement?: { system?: string; url: string };
     dependencies: PomDependency[];
-    /** Parents and imported BOMs that aren't in this repository. */
+    /** Parents and imported BOMs that aren't on this server. */
     unresolved: string[];
+}
+
+export type VulnerabilitySeverity = 'critical' | 'high' | 'medium' | 'low' | 'unknown';
+
+export interface Vulnerability {
+    id: string;
+    summary?: string;
+    aliases: string[];
+    severity: VulnerabilitySeverity;
+    cvss?: string;
+    published?: string;
+    fixed: string[];
+    url: string;
+}
+
+export interface CheckedDependency {
+    groupId: string;
+    artifactId: string;
+    version: string;
+    vulnerabilities: Vulnerability[];
+}
+
+export interface SkippedDependency {
+    groupId: string;
+    artifactId: string;
+    version?: string;
+    /** hosted: the artifact is on this server. unresolved: the version is missing, a range or a placeholder. */
+    reason: 'hosted' | 'unresolved';
+}
+
+export interface VulnerabilityReport {
+    dependencies: CheckedDependency[];
+    skipped: SkippedDependency[];
+    checkedAt: string;
 }
 
 export interface JavadocPackage {

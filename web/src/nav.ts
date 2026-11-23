@@ -9,6 +9,7 @@ import {
     Settings,
     UserGroup,
     UserRound,
+    Warehouse,
     type LucideIcon,
 } from 'lucide-react';
 import { matchPath } from 'react-router';
@@ -45,6 +46,7 @@ export const navGroups: NavGroup[] = [
         label: 'Administration',
         visible: (user) => user?.isAdmin ?? false,
         items: [
+            { title: 'Repositories', to: '/repositories', icon: Warehouse },
             { title: 'Artifacts', to: '/artifacts', icon: Boxes },
             { title: 'Users', to: '/users', icon: UserRound },
             { title: 'Teams', to: '/teams', icon: UserGroup },

@@ -18,11 +18,13 @@ No complex setup, no plugins, no external database. Start the container, log in,
 - **Browse the repository** in the web UI, with ready to copy dependency snippets for Maven, Gradle (Kotlin) and Gradle (Groovy).
 - **View javadocs** right in the browser. Publish a javadoc jar alongside your artifact and it shows up automatically, with search and a version switcher.
 - **Public and private artifacts.** Public artifacts can be downloaded by anyone, private ones require a token.
-- **Fine grained permissions if you want them.** Grant users or teams read or write access to a whole group (like `com/example/**`) or a single artifact. If you don't need that, admins can access everything and you can ignore it.
+- **Several repositories on one server**, each under its own path like `/releases` or `/snapshots`, accepting only releases, only snapshots or both.
+- **Fine grained permissions if you want them.** Grant users or teams read or write access to a whole repository (like `releases/**`), a group (like `releases/com/example/**`) or a single artifact. If you don't need that, admins can access everything and you can ignore it.
 - **Access tokens** for Maven and Gradle, created per user from the web UI. Tokens can be restricted to single artifacts, so a leaked CI token only exposes what it publishes.
 - **Users and teams** to organize who has access to what.
 - **Release and snapshot** versions, with optional protection against overwriting releases.
 - **Download statistics** per artifact and version, with charts over time for admins.
+- **Vulnerability checks** for dependencies (opt in). Direct dependencies of every version are checked against [OSV](https://osv.dev) or a mirror of its API, artifacts hosted on the server are never sent.
 - **README badges** showing the latest version of an artifact or its downloads per week, month, year or in total.
 
 ## Screenshots

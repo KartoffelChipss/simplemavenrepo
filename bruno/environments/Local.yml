@@ -10,6 +10,8 @@ variables:
     value: ""
   - name: grantId
     value: ""
+  - name: repository
+    value: releases
   - name: groupId
     value: org.example
   - name: artifactId

@@ -5,7 +5,7 @@ info:
 
 http:
   method: DELETE
-  url: "{{baseUrl}}/api/artifacts/{{groupId}}/{{artifactId}}"
+  url: "{{baseUrl}}/api/artifacts/{{repository}}/{{groupId}}/{{artifactId}}"
   auth: inherit
 
 settings:

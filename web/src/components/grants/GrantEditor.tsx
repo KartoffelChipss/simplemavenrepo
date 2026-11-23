@@ -72,7 +72,7 @@ function AddGrantForm({ target }: { target: GrantTarget }) {
                     <Input
                         id="grant-pattern"
                         className="font-mono"
-                        placeholder="com/example/**"
+                        placeholder="releases/com/example/**"
                         autoCapitalize="none"
                         spellCheck={false}
                         value={pattern}
@@ -112,8 +112,9 @@ function AddGrantForm({ target }: { target: GrantTarget }) {
                 </FieldDescription>
             ) : (
                 <FieldDescription>
-                    A group path covers everything below it. Use <span className="font-mono">**</span> for the whole
-                    repository.
+                    Starts with the repository and covers everything below it. Use{' '}
+                    <span className="font-mono">releases/**</span> for a whole repository or{' '}
+                    <span className="font-mono">**</span> for all of them.
                 </FieldDescription>
             )}
             {create.error && <FieldError>{create.error.message}</FieldError>}

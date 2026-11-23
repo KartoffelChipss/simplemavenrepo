@@ -21,7 +21,7 @@ function matches({ artifact }: BrowseArtifact, query: string) {
     );
 }
 
-function NoArtifacts() {
+function NoArtifacts({ repository }: { repository: string }) {
     const { data: me } = useMe();
     const location = useLocation();
 
@@ -31,7 +31,7 @@ function NoArtifacts() {
                 <EmptyMedia variant="icon">
                     <PackageSearch />
                 </EmptyMedia>
-                <EmptyTitle>Nothing to browse yet</EmptyTitle>
+                <EmptyTitle>Nothing to browse in {repository} yet</EmptyTitle>
                 <EmptyDescription>
                     {me ? 'There are no artifacts you have access to.' : 'There are no public artifacts.'}
                 </EmptyDescription>
@@ -127,8 +127,10 @@ function ArtifactTable({ items, query }: { items: BrowseArtifact[]; query: strin
     );
 }
 
-export function ArtifactList() {
-    const { data: items, error, isPending } = useBrowseArtifacts();
+/** The artifacts of a repository that the caller can read. */
+export function ArtifactList({ repository }: { repository: string }) {
+    const { data: all, error, isPending } = useBrowseArtifacts();
+    const items = all?.filter((item) => item.artifact.repository === repository);
     const [searchParams, setSearchParams] = useSearchParams();
     const query = searchParams.get('q') ?? '';
 
@@ -144,7 +146,7 @@ export function ArtifactList() {
                 </div>
             )}
             {error && <p className="text-destructive">{error.message}</p>}
-            {items?.length === 0 && <NoArtifacts />}
+            {items?.length === 0 && <NoArtifacts repository={repository} />}
 
             {items && items.length > 0 && (
                 <>

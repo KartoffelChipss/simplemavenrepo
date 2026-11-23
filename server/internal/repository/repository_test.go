@@ -167,33 +167,52 @@ func TestArtifacts(t *testing.T) {
 	r := newTestRepos(t)
 
 	desc := "Demo library"
-	demo, err := r.Artifacts.Create(ctx, "com.example", "demo", true, false, &desc)
+	demo, err := r.Artifacts.Create(ctx, "releases", "com.example", "demo", true, false, &desc)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if demo.Path != "com/example/demo" || !demo.Public || demo.Description == nil || *demo.Description != desc {
+	if demo.Path != "releases/com/example/demo" || demo.Repository != "releases" || !demo.Public || demo.Description == nil || *demo.Description != desc {
 		t.Fatalf("unexpected artifact: %+v", demo)
 	}
-	if _, err := r.Artifacts.Create(ctx, "com.example", "demo", false, false, nil); !errors.Is(err, ErrConflict) {
+	if _, err := r.Artifacts.Create(ctx, "releases", "com.example", "demo", false, false, nil); !errors.Is(err, ErrConflict) {
 		t.Fatalf("duplicate artifact: got %v, want ErrConflict", err)
 	}
 	// Different coordinates that map to the same directory
-	if _, err := r.Artifacts.Create(ctx, "com", "example/demo", false, false, nil); !errors.Is(err, ErrConflict) {
+	if _, err := r.Artifacts.Create(ctx, "releases", "com", "example/demo", false, false, nil); !errors.Is(err, ErrConflict) {
 		t.Fatalf("artifact with the same path: got %v, want ErrConflict", err)
 	}
-	nested, err := r.Artifacts.Create(ctx, "com.example.demo", "sub", false, false, nil)
+	if _, err := r.Artifacts.Create(ctx, "missing", "com.example", "demo", false, false, nil); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("artifact in a missing repository: got %v, want ErrNotFound", err)
+	}
+	nested, err := r.Artifacts.Create(ctx, "releases", "com.example.demo", "sub", false, false, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
+	if _, err := r.Repos.Create(ctx, "snapshots", RepoOptions{VersionPolicy: ptr(PolicySnapshot)}); err != nil {
+		t.Fatal(err)
+	}
+	snapshot, err := r.Artifacts.Create(ctx, "snapshots", "com.example", "demo", false, false, nil)
+	if err != nil {
+		t.Fatalf("same coordinates in another repository: %v", err)
+	}
+	copies, err := r.Artifacts.ListByCoordinates(ctx, "com.example", "demo")
+	if err != nil || len(copies) != 2 || copies[0].ID != demo.ID || copies[1].ID != snapshot.ID {
+		t.Fatalf("ListByCoordinates = %+v, %v", copies, err)
+	}
+	if got, err := r.Artifacts.Get(ctx, "snapshots", "com.example", "demo"); err != nil || got.ID != snapshot.ID {
+		t.Fatalf("Get in snapshots = %+v, %v", got, err)
+	}
 
 	tests := map[string]int64{
-		"com/example/demo/1.0/demo-1.0.jar":    demo.ID,
-		"com/example/demo/maven-metadata.xml":  demo.ID,
-		"/com/example/demo":                    demo.ID,
-		"com/example/demo/sub/1.0/sub-1.0.pom": nested.ID,
-		"com/example/other/1.0/other-1.0.jar":  0,
-		"com/example":                          0,
-		"com":                                  0,
+		"releases/com/example/demo/1.0/demo-1.0.jar":    demo.ID,
+		"releases/com/example/demo/maven-metadata.xml":  demo.ID,
+		"/releases/com/example/demo":                    demo.ID,
+		"releases/com/example/demo/sub/1.0/sub-1.0.pom": nested.ID,
+		"snapshots/com/example/demo/1.0-SNAPSHOT":       snapshot.ID,
+		"releases/com/example/other/1.0/other-1.0.jar":  0,
+		"releases/com/example":                          0,
+		"com/example/demo/1.0/demo-1.0.jar":             0,
+		"releases":                                      0,
 	}
 	for p, want := range tests {
 		a, err := r.Artifacts.FindByPath(ctx, p)
@@ -228,7 +247,7 @@ func TestArtifacts(t *testing.T) {
 	if err := r.Artifacts.Delete(ctx, demo.ID); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := r.Artifacts.FindByPath(ctx, "com/example/demo/1.0/demo-1.0.jar"); !errors.Is(err, ErrNotFound) {
+	if _, err := r.Artifacts.FindByPath(ctx, "releases/com/example/demo/1.0/demo-1.0.jar"); !errors.Is(err, ErrNotFound) {
 		t.Fatalf("FindByPath after delete: got %v, want ErrNotFound", err)
 	}
 }
@@ -336,12 +355,90 @@ func TestSettings(t *testing.T) {
 	}
 
 	name, description := "Acme", "# Welcome"
-	if s, err = r.Settings.Update(ctx, &name, &description); err != nil || *s.Name != name || *s.Description != description {
+	if s, err = r.Settings.Update(ctx, SettingsUpdate{Name: &name, Description: &description}); err != nil || *s.Name != name || *s.Description != description {
 		t.Fatalf("update: got %+v, %v", s, err)
 	}
 
 	empty := ""
-	if s, err = r.Settings.Update(ctx, nil, &empty); err != nil || s.Name == nil || *s.Name != name || s.Description != nil {
+	if s, err = r.Settings.Update(ctx, SettingsUpdate{Description: &empty}); err != nil || s.Name == nil || *s.Name != name || s.Description != nil {
 		t.Fatalf("clear description: got %+v, %v", s, err)
 	}
+
+	if s.OSVEnabled || s.OSVURL != nil {
+		t.Fatalf("OSV must be off by default: %+v", s)
+	}
+	enabled, osvURL := true, "https://osv.example.com"
+	if s, err = r.Settings.Update(ctx, SettingsUpdate{OSVEnabled: &enabled, OSVURL: &osvURL}); err != nil || !s.OSVEnabled || s.OSVURL == nil || *s.OSVURL != osvURL || *s.Name != name {
+		t.Fatalf("enable OSV: got %+v, %v", s, err)
+	}
+	if s, err = r.Settings.Update(ctx, SettingsUpdate{OSVURL: &empty}); err != nil || !s.OSVEnabled || s.OSVURL != nil {
+		t.Fatalf("clear OSV URL: got %+v, %v", s, err)
+	}
 }
+
+func TestRepos(t *testing.T) {
+	ctx := context.Background()
+	r := newTestRepos(t)
+
+	all, err := r.Repos.List(ctx)
+	if err != nil || len(all) != 1 || all[0].Name != "releases" || all[0].VersionPolicy != PolicyMixed {
+		t.Fatalf("the migration should create the releases repository: %+v, %v", all, err)
+	}
+	desc := "Nightly builds"
+	snapshots, err := r.Repos.Create(ctx, "snapshots", RepoOptions{VersionPolicy: ptr(PolicySnapshot), Description: &desc})
+	if err != nil || snapshots.Description == nil || *snapshots.Description != desc {
+		t.Fatalf("Create = %+v, %v", snapshots, err)
+	}
+	if _, err := r.Repos.Create(ctx, "snapshots", RepoOptions{}); !errors.Is(err, ErrConflict) {
+		t.Fatalf("duplicate repository: got %v, want ErrConflict", err)
+	}
+
+	release := PolicyRelease
+	empty := ""
+	if snapshots.AutoRegister || snapshots.DefaultPublic {
+		t.Fatalf("auto registration must be off by default: %+v", snapshots)
+	}
+	updated, err := r.Repos.Update(ctx, snapshots.ID, RepoOptions{VersionPolicy: &release, Description: &empty, AutoRegister: ptr(true)})
+	if err != nil || updated.VersionPolicy != PolicyRelease || updated.Description != nil || !updated.AutoRegister || updated.DefaultPublic {
+		t.Fatalf("Update = %+v, %v", updated, err)
+	}
+
+	a, err := r.Artifacts.Create(ctx, "snapshots", "com.example", "demo", false, false, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := r.Repos.Delete(ctx, snapshots.ID); !errors.Is(err, ErrConflict) {
+		t.Fatalf("deleting a repository with artifacts: got %v, want ErrConflict", err)
+	}
+	if err := r.Artifacts.Delete(ctx, a.ID); err != nil {
+		t.Fatal(err)
+	}
+	if err := r.Repos.Delete(ctx, snapshots.ID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := r.Repos.Get(ctx, "snapshots"); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("Get after delete: got %v, want ErrNotFound", err)
+	}
+}
+
+func TestVersionPolicy(t *testing.T) {
+	tests := []struct {
+		policy  VersionPolicy
+		version string
+		want    bool
+	}{
+		{PolicyRelease, "1.0", true},
+		{PolicyRelease, "1.0-SNAPSHOT", false},
+		{PolicySnapshot, "1.0", false},
+		{PolicySnapshot, "1.0-SNAPSHOT", true},
+		{PolicyMixed, "1.0", true},
+		{PolicyMixed, "1.0-SNAPSHOT", true},
+	}
+	for _, tt := range tests {
+		if got := tt.policy.Allows(tt.version); got != tt.want {
+			t.Errorf("%s.Allows(%q) = %v, want %v", tt.policy, tt.version, got, tt.want)
+		}
+	}
+}
+
+func ptr[T any](v T) *T { return &v }

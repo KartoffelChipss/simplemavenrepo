@@ -5,7 +5,7 @@ info:
 
 http:
   method: PATCH
-  url: "{{baseUrl}}/api/artifacts/{{groupId}}/{{artifactId}}"
+  url: "{{baseUrl}}/api/artifacts/{{repository}}/{{groupId}}/{{artifactId}}"
   body:
     type: json
     data: |-

@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"log"
-	"path"
 	"simplemavenrepo/internal/auth"
 	"simplemavenrepo/internal/maven"
 	"simplemavenrepo/internal/repository"
@@ -15,11 +14,12 @@ import (
 	"github.com/gofiber/fiber/v3"
 )
 
-// newReadGuard only serves files of registered artifacts. Private artifacts additionally require a token with read access.
-func newReadGuard(repos repository.Repositories) fiber.Handler {
-	return func(c fiber.Ctx) error {
-		relPath := path.Clean("/" + strings.TrimPrefix(c.Path(), "/releases"))
+// readGuard is called with the path of a requested file, e.g. releases/com/example/demo/1.0/demo-1.0.jar, and only lets
+// serve send files of registered artifacts. Private artifacts additionally require a token with read access.
+type readGuard func(c fiber.Ctx, relPath string, serve fiber.Handler) error
 
+func newReadGuard(repos repository.Repositories) readGuard {
+	return func(c fiber.Ctx, relPath string, serve fiber.Handler) error {
 		artifact, err := repos.Artifacts.FindByPath(c.Context(), relPath)
 		if err != nil {
 			if errors.Is(err, repository.ErrNotFound) {
@@ -29,7 +29,7 @@ func newReadGuard(repos repository.Repositories) fiber.Handler {
 			return fiber.ErrInternalServerError
 		}
 		if artifact.Public {
-			if err := c.Next(); err != nil {
+			if err := serve(c); err != nil {
 				return err
 			}
 			countDownload(c, repos, artifact, relPath)
@@ -48,7 +48,7 @@ func newReadGuard(repos repository.Repositories) fiber.Handler {
 			return fiber.NewError(fiber.StatusForbidden, "no read permission for "+artifact.GroupID+":"+artifact.ArtifactID)
 		}
 
-		if err := c.Next(); err != nil {
+		if err := serve(c); err != nil {
 			return err
 		}
 		// Shared caches must not keep files of private artifacts
@@ -72,7 +72,7 @@ func countDownload(c fiber.Ctx, repos repository.Repositories, artifact reposito
 	if c.Method() != fiber.MethodGet || c.Response().StatusCode() != fiber.StatusOK {
 		return
 	}
-	version, file, ok := strings.Cut(strings.TrimPrefix(relPath, "/"+artifact.Path+"/"), "/")
+	version, file, ok := strings.Cut(strings.TrimPrefix(relPath, artifact.Path+"/"), "/")
 	if !ok || strings.Contains(file, "/") || !maven.IsMainFile(artifact.ArtifactID, version, file, downloadExtensions) {
 		return
 	}

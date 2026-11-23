@@ -1,6 +1,6 @@
 import { request } from '@/api/client.ts';
 import { browseKeys } from '@/api/keys.ts';
-import type { BrowseArtifact, BrowseListing, Pom } from '@/api/types.ts';
+import type { BrowseArtifact, BrowseListing, Pom, VulnerabilityReport } from '@/api/types.ts';
 import { keepPreviousData, queryOptions, skipToken, useQuery } from '@tanstack/react-query';
 
 const encodePath = (path: string) => path.split('/').filter(Boolean).map(encodeURIComponent).join('/');
@@ -15,7 +15,8 @@ export function useBrowseArtifacts() {
 export const browse = (path: string, signal?: AbortSignal) =>
     request<BrowseListing>('GET', `/browse/${encodePath(path)}`, undefined, signal);
 
-export const repositoryFileUrl = (path: string) => `/releases/${encodePath(path)}`;
+/** URL of a file, given as its path starting with the repository. */
+export const repositoryFileUrl = (path: string) => `/${encodePath(path)}`;
 
 export const browseQuery = (path: string) =>
     queryOptions({
@@ -30,6 +31,18 @@ export function usePom(versionPath: string | undefined) {
     return useQuery({
         queryKey: browseKeys.pom(versionPath ?? ''),
         queryFn: versionPath ? ({ signal }) => getPom(versionPath, signal) : skipToken,
+    });
+}
+
+export const getVulnerabilities = (versionPath: string, signal?: AbortSignal) =>
+    request<VulnerabilityReport>('GET', `/vulnerabilities/${encodePath(versionPath)}`, undefined, signal);
+
+export function useVulnerabilities(versionPath: string | undefined, enabled: boolean) {
+    return useQuery({
+        queryKey: browseKeys.vulnerabilities(versionPath ?? ''),
+        queryFn: versionPath && enabled ? ({ signal }) => getVulnerabilities(versionPath, signal) : skipToken,
+        staleTime: 10 * 60 * 1000, // server caches for a day, so we can keep it for a while
+        retry: false,
     });
 }
 

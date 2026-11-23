@@ -17,6 +17,7 @@ import (
 	"simplemavenrepo/internal/handlers/ressourcehandler"
 	"simplemavenrepo/internal/javadoc"
 	"simplemavenrepo/internal/repository"
+	"simplemavenrepo/internal/storage"
 	"simplemavenrepo/internal/util"
 	"simplemavenrepo/internal/webui"
 	"syscall"
@@ -96,6 +97,10 @@ func main() {
 	if err != nil {
 		log.Fatalf("Cannot open repository path: %v", err)
 	}
+	// Older versions kept the files of their single repository at the top, the database migration names it "releases"
+	if err := storage.MigrateLayout(root, "releases"); err != nil {
+		log.Fatalf("Migrating the repository layout failed: %v", err)
+	}
 	if err := ressourcehandler.RemoveStaleUploads(root); err != nil {
 		log.Fatalf("Removing unfinished uploads failed: %v", err)
 	}
@@ -115,7 +120,7 @@ func main() {
 
 	apihandler.RegisterApiRoutes(app, repos, root, signer)
 	javadochandler.RegisterJavadocRoutes(app, root.FS(), signer)
-	ressourcehandler.RegisterRessourceRoutes(app, repos)
+	ressourcehandler.RegisterRessourceRoutes(app, repos, root)
 	webui.RegisterRoutes(app)
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)

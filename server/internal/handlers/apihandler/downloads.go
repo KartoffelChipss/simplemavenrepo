@@ -2,7 +2,6 @@ package apihandler
 
 import (
 	"cmp"
-	"errors"
 	"simplemavenrepo/internal/badge"
 	"simplemavenrepo/internal/repository"
 	"slices"
@@ -145,18 +144,11 @@ func (h *handler) getDownloadsBadge(c fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusBadRequest, "period must be week, month, year or all")
 	}
 
-	artifact, err := h.repos.Artifacts.Get(c.Context(), c.Params("groupId"), c.Params("artifactId"))
-	if errors.Is(err, repository.ErrNotFound) {
-		return sendBadge(c, label, "not found", badge.ColorGrey, false)
-	}
-	if err != nil {
-		return repoError(err, "artifact")
-	}
-	canRead, err := h.readFilter(c)
+	artifact, ok, err := h.badgeArtifact(c)
 	if err != nil {
 		return err
 	}
-	if !canRead(artifact) {
+	if !ok {
 		return sendBadge(c, label, "not found", badge.ColorGrey, false)
 	}
 

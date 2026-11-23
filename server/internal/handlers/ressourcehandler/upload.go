@@ -19,6 +19,7 @@ import (
 	"path"
 	"simplemavenrepo/internal/auth"
 	"simplemavenrepo/internal/repository"
+	"slices"
 	"strings"
 
 	"github.com/gofiber/fiber/v3"
@@ -27,6 +28,16 @@ import (
 var ignoredSuffixes = []string{".md5", ".sha1", ".sha256", ".sha512"}
 
 var storedExtensions = []string{".jar", ".pom", ".module", ".aar", ".klib", ".war", ".ear", ".zip", ".tar.gz"}
+
+const signatureSuffix = ".asc"
+
+var signedExtensions = func() []string {
+	exts := slices.Clone(storedExtensions)
+	for _, ext := range storedExtensions {
+		exts = append(exts, ext+signatureSuffix)
+	}
+	return exts
+}()
 
 type deployment struct {
 	artifact *repository.Artifact
@@ -84,46 +95,78 @@ func recordDeploy(c fiber.Ctx, repos repository.Repositories, d deployment, uplo
 }
 
 func upload(c fiber.Ctx, root *os.Root, repos repository.Repositories, d *deployment) error {
-	relPath, err := validateUploadPath(c.Params("*"))
+	repo := currentRepo(c)
+	// The path inside the repository, used for the files, and the full path, used for artifacts and permissions
+	relPath, err := validateUploadPath(strings.TrimPrefix(c.Params("*"), repo.Name+"/"))
 	if err != nil {
 		d.logTo(c, repos, c.Params("*"))
 		return fiber.NewError(fiber.StatusBadRequest, err.Error())
 	}
+	fullPath := repo.Name + "/" + relPath
 
-	allowed, err := auth.Authorize(c, repos.Grants, relPath, repository.PermissionWrite)
+	allowed, err := auth.Authorize(c, repos.Grants, fullPath, repository.PermissionWrite)
 	if err != nil {
-		log.Printf("Checking permissions for %s failed: %v", relPath, err)
+		log.Printf("Checking permissions for %s failed: %v", fullPath, err)
 		return fiber.ErrInternalServerError
 	}
 	if !allowed {
-		d.logTo(c, repos, relPath)
-		return fiber.NewError(fiber.StatusForbidden, "no write permission for "+path.Dir(relPath))
+		d.logTo(c, repos, fullPath)
+		return fiber.NewError(fiber.StatusForbidden, "no write permission for "+path.Dir(fullPath))
 	}
 
 	// Checked after authorization so only users with write access learn which artifacts are registered
-	artifact, err := repos.Artifacts.FindByPath(c.Context(), relPath)
-	if err != nil {
-		if errors.Is(err, repository.ErrNotFound) {
-			return fiber.NewError(fiber.StatusNotFound, "no registered artifact contains "+relPath)
-		}
-		log.Printf("Looking up artifact for %s failed: %v", relPath, err)
+	artifact, err := repos.Artifacts.FindByPath(c.Context(), fullPath)
+	registered := err == nil
+	if err != nil && !errors.Is(err, repository.ErrNotFound) {
+		log.Printf("Looking up artifact for %s failed: %v", fullPath, err)
 		return fiber.ErrInternalServerError
+	}
+	// Checksums, signatures and metadata follow the files they belong to, so an unregistered artifact is only registered
+	// by a file
+	if !registered && (!repo.AutoRegister || isIgnoredUpload(relPath) || isSignature(relPath)) {
+		// Not 404: Maven reports that as "Could not find artifact" and drops the message
+		return fiber.NewError(fiber.StatusForbidden,
+			coordinatesOf(relPath)+" is not registered in repository "+repo.Name+", an admin has to register it first")
 	}
 
 	if isIgnoredUpload(relPath) {
 		return c.SendStatus(fiber.StatusNoContent)
 	}
-	d.artifact, d.relPath = &artifact, relPath
-	if !hasStoredExtension(relPath) {
-		return fiber.NewError(fiber.StatusUnsupportedMediaType, "only "+strings.Join(storedExtensions, ", ")+" files can be uploaded")
+	if registered {
+		d.artifact, d.relPath = &artifact, fullPath
 	}
+	if version := path.Base(path.Dir(relPath)); !repo.VersionPolicy.Allows(version) {
+		return fiber.NewError(fiber.StatusBadRequest, policyError(repo, version))
+	}
+	if !hasStoredExtension(relPath) && !isSignature(relPath) {
+		return fiber.NewError(fiber.StatusUnsupportedMediaType,
+			"only "+strings.Join(storedExtensions, ", ")+" files and their "+signatureSuffix+" signatures can be uploaded")
+	}
+	// Registered only once the upload passed the checks, so a rejected one doesn't leave an artifact behind
+	if !registered {
+		if artifact, err = autoRegister(c, repos, repo, relPath); err != nil {
+			return err
+		}
+		d.artifact, d.relPath = &artifact, fullPath
+	}
+
+	if err := root.MkdirAll(repo.Name, 0o755); err != nil {
+		log.Printf("Creating the directory of repository %s failed: %v", repo.Name, err)
+		return fiber.ErrInternalServerError
+	}
+	repoRoot, err := root.OpenRoot(repo.Name)
+	if err != nil {
+		log.Printf("Opening the directory of repository %s failed: %v", repo.Name, err)
+		return fiber.ErrInternalServerError
+	}
+	defer repoRoot.Close()
 
 	replace := artifact.AllowReleaseOverwrite || isSnapshotPath(relPath)
 	if !replace {
-		if _, err := root.Stat(relPath); err == nil {
-			return errReleaseExists(relPath)
+		if _, err := repoRoot.Stat(relPath); err == nil {
+			return errReleaseExists(fullPath)
 		} else if !errors.Is(err, fs.ErrNotExist) {
-			log.Printf("Checking for existing %s failed: %v", relPath, err)
+			log.Printf("Checking for existing %s failed: %v", fullPath, err)
 			return fiber.ErrInternalServerError
 		}
 	}
@@ -135,22 +178,57 @@ func upload(c fiber.Ctx, root *os.Root, repos repository.Repositories, d *deploy
 		body = bytes.NewReader(c.Body())
 	}
 
-	if err := writeFileAtomicWithHashes(root, relPath, body, replace); err != nil {
+	if err := writeFileAtomicWithHashes(repoRoot, relPath, body, replace); err != nil {
 		if errors.Is(err, fs.ErrExist) {
-			return errReleaseExists(relPath)
+			return errReleaseExists(fullPath)
 		}
-		log.Printf("Upload of %s failed: %v", relPath, err)
+		log.Printf("Upload of %s failed: %v", fullPath, err)
 		return fiber.NewError(fiber.StatusInternalServerError, "failed to store file")
 	}
-	if err := updateMetadata(root, relPath); err != nil {
-		log.Printf("Updating metadata for %s failed: %v", relPath, err)
+	if err := updateMetadata(repoRoot, repo.Name, relPath); err != nil {
+		log.Printf("Updating metadata for %s failed: %v", fullPath, err)
 		return fiber.NewError(fiber.StatusInternalServerError, "failed to update metadata")
 	}
-	if info, err := root.Stat(relPath); err == nil {
+	if info, err := repoRoot.Stat(relPath); err == nil {
 		size := info.Size()
 		d.size = &size
 	}
 	return c.SendStatus(fiber.StatusCreated)
+}
+
+// autoRegister registers the artifact of the upload path relPath in repo, which must allow it.
+func autoRegister(c fiber.Ctx, repos repository.Repositories, repo repository.Repo, relPath string) (repository.Artifact, error) {
+	groupID, artifactID, _ := strings.Cut(coordinatesOf(relPath), ":")
+	if !repository.ValidGroupID(groupID) || !repository.ValidArtifactID(artifactID) {
+		return repository.Artifact{}, fiber.NewError(fiber.StatusBadRequest, coordinatesOf(relPath)+" is not a valid groupId:artifactId")
+	}
+
+	artifact, err := repos.Artifacts.Create(c.Context(), repo.Name, groupID, artifactID, repo.DefaultPublic, false, nil)
+	if errors.Is(err, repository.ErrConflict) {
+		// Registered by a concurrent upload in the meantime
+		artifact, err = repos.Artifacts.Get(c.Context(), repo.Name, groupID, artifactID)
+	} else if err == nil {
+		log.Printf("Registered %s:%s in repository %s on deploy by %s", groupID, artifactID, repo.Name, auth.CurrentUser(c).Username)
+	}
+	if err != nil {
+		log.Printf("Registering %s:%s in repository %s failed: %v", groupID, artifactID, repo.Name, err)
+		return repository.Artifact{}, fiber.ErrInternalServerError
+	}
+	return artifact, nil
+}
+
+// coordinatesOf returns groupId:artifactId of a valid upload path <group path>/<artifactId>/<version>/<file>.
+func coordinatesOf(relPath string) string {
+	segments := strings.Split(relPath, "/")
+	n := len(segments)
+	return strings.Join(segments[:n-3], ".") + ":" + segments[n-3]
+}
+
+func policyError(repo repository.Repo, version string) string {
+	if repo.VersionPolicy == repository.PolicySnapshot {
+		return "repository " + repo.Name + " only accepts SNAPSHOT versions, not " + version
+	}
+	return "repository " + repo.Name + " only accepts release versions, not " + version
 }
 
 func errReleaseExists(relPath string) error {
@@ -202,6 +280,12 @@ func isIgnoredUpload(p string) bool {
 		}
 	}
 	return false
+}
+
+// isSignature reports whether p is the signature of a file with a stored extension.
+func isSignature(p string) bool {
+	signed, ok := strings.CutSuffix(p, signatureSuffix)
+	return ok && hasStoredExtension(signed)
 }
 
 func hasStoredExtension(p string) bool {

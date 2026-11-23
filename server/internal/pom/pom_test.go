@@ -47,7 +47,8 @@ var repo = fstest.MapFS{
 	"org/example/snap/1.0-SNAPSHOT/snap-1.0-20240102.000000-2.pom": file(`<project><groupId>g</groupId><artifactId>snap</artifactId><version>new</version></project>`),
 }
 
-func everything(string) bool { return true }
+// everything finds every artifact in a single repository at the root of the test filesystem
+func everything(p string) []string { return []string{p} }
 
 func TestResolveMergesParentsAndBoms(t *testing.T) {
 	p, err := Resolve(repo, "org/example/lib/1.0", "lib", "1.0", everything)
@@ -92,7 +93,12 @@ func TestResolveMissingParent(t *testing.T) {
 }
 
 func TestResolveSkipsUnreadableParent(t *testing.T) {
-	p, err := Resolve(repo, "org/example/lib/1.0", "lib", "1.0", func(path string) bool { return path != "org/example/parent" })
+	p, err := Resolve(repo, "org/example/lib/1.0", "lib", "1.0", func(p string) []string {
+		if p == "org/example/parent" {
+			return nil
+		}
+		return []string{p}
+	})
 	if err != nil {
 		t.Fatal(err)
 	}

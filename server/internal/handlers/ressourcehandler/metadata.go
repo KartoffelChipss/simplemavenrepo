@@ -13,15 +13,16 @@ import (
 // One lock per artifact directory
 var metadataLocks sync.Map
 
-// updateMetadata regenerates the maven-metadata.xml files affected by an upload to <group path>/<artifactId>/<version>/<file>.
-func updateMetadata(root *os.Root, relPath string) error {
+// updateMetadata regenerates the maven-metadata.xml files affected by an upload to <group path>/<artifactId>/<version>/<file>
+// in the repository repo, whose directory is root.
+func updateMetadata(root *os.Root, repo, relPath string) error {
 	versionDir := path.Dir(relPath)
 	artifactDir := path.Dir(versionDir)
 	version := path.Base(versionDir)
 	artifactID := path.Base(artifactDir)
 	groupID := strings.ReplaceAll(path.Dir(artifactDir), "/", ".")
 
-	lock, _ := metadataLocks.LoadOrStore(artifactDir, &sync.Mutex{})
+	lock, _ := metadataLocks.LoadOrStore(path.Join(repo, artifactDir), &sync.Mutex{})
 	lock.(*sync.Mutex).Lock()
 	defer lock.(*sync.Mutex).Unlock()
 
@@ -32,7 +33,7 @@ func updateMetadata(root *os.Root, relPath string) error {
 		if err != nil {
 			return err
 		}
-		if m, ok := maven.NewSnapshotMetadata(groupID, artifactID, version, files, storedExtensions, now); ok {
+		if m, ok := maven.NewSnapshotMetadata(groupID, artifactID, version, files, signedExtensions, now); ok {
 			if err := writeMetadata(root, versionDir, m); err != nil {
 				return err
 			}

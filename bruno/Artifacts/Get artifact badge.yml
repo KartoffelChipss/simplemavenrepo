@@ -14,3 +14,5 @@ settings:
   followRedirects: true
   maxRedirects: 5
   forwardAuthorizationHeader: true
+
+docs: "Without `?repo=<name>` the badge shows the artifact from a repository that only accepts releases if there is one, then from one that accepts both, then from a snapshot repository."

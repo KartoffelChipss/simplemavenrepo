@@ -6,6 +6,7 @@ import (
 	"os"
 	"simplemavenrepo/internal/auth"
 	"simplemavenrepo/internal/javadoc"
+	"simplemavenrepo/internal/osv"
 	"simplemavenrepo/internal/repository"
 
 	"github.com/gofiber/fiber/v3"
@@ -16,10 +17,11 @@ type handler struct {
 	root   *os.Root
 	repoFS fs.FS
 	signer *javadoc.Signer
+	osv    *osv.Client
 }
 
 func RegisterApiRoutes(app *fiber.App, repos repository.Repositories, root *os.Root, signer *javadoc.Signer) {
-	h := &handler{repos: repos, root: root, repoFS: root.FS(), signer: signer}
+	h := &handler{repos: repos, root: root, repoFS: root.FS(), signer: signer, osv: osv.NewClient()}
 	api := app.Group("/api")
 
 	api.Use(func(c fiber.Ctx) error {
@@ -50,11 +52,13 @@ func RegisterApiRoutes(app *fiber.App, repos repository.Repositories, root *os.R
 	api.Get("/browse", h.listBrowsableArtifacts)
 	api.Get("/browse/*", h.browseRepository)
 	api.Get("/pom/*", h.getPom)
+	api.Get("/vulnerabilities/*", h.getVulnerabilities)
 	api.Get("/javadoc", h.listJavadoc)
 	api.Get("/javadoc/*", h.getJavadoc)
 	api.Get("/badge/:groupId/:artifactId", h.getBadge)
 	api.Get("/badge/:groupId/:artifactId/downloads", h.getDownloadsBadge)
 	api.Get("/settings", h.getSettings)
+	api.Get("/repositories", h.listRepos)
 
 	authenticate := auth.Authenticate(repos)
 
@@ -92,12 +96,18 @@ func RegisterApiRoutes(app *fiber.App, repos repository.Repositories, root *os.R
 	api.Get("/stats/storage", authenticate, auth.RequireAdmin, h.getStorageStats)
 	api.Get("/stats/downloads", authenticate, auth.RequireAdmin, h.getDownloadStats)
 
+	repositories := api.Group("/repositories", authenticate, auth.RequireAdmin)
+	repositories.Post("", h.createRepo)
+	repositories.Get("/:repo", h.getRepo)
+	repositories.Patch("/:repo", h.updateRepo)
+	repositories.Delete("/:repo", h.deleteRepo)
+
 	artifacts := api.Group("/artifacts", authenticate, auth.RequireAdmin)
 	artifacts.Get("", h.listArtifacts)
 	artifacts.Post("", h.createArtifact)
-	artifacts.Get("/:groupId/:artifactId", h.getArtifact)
-	artifacts.Patch("/:groupId/:artifactId", h.updateArtifact)
-	artifacts.Delete("/:groupId/:artifactId", h.deleteArtifact)
-	artifacts.Get("/:groupId/:artifactId/deploys", h.listDeploys)
-	artifacts.Get("/:groupId/:artifactId/downloads", h.getArtifactDownloads)
+	artifacts.Get("/:repo/:groupId/:artifactId", h.getArtifact)
+	artifacts.Patch("/:repo/:groupId/:artifactId", h.updateArtifact)
+	artifacts.Delete("/:repo/:groupId/:artifactId", h.deleteArtifact)
+	artifacts.Get("/:repo/:groupId/:artifactId/deploys", h.listDeploys)
+	artifacts.Get("/:repo/:groupId/:artifactId/downloads", h.getArtifactDownloads)
 }

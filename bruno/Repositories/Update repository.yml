@@ -1,0 +1,26 @@
+info:
+  name: Update repository
+  type: http
+  seq: 4
+
+http:
+  method: PATCH
+  url: "{{baseUrl}}/api/repositories/{{repository}}"
+  body:
+    type: json
+    data: |-
+      {
+        "versionPolicy": "mixed",
+        "description": "",
+        "autoRegister": true
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+docs: "Missing fields stay unchanged, an empty description clears it."

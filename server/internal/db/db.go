@@ -126,6 +126,53 @@ var migrations = []string{
 	) WITHOUT ROWID;
 	CREATE INDEX downloads_day ON downloads(day);
 	`,
+	`
+	-- The name is the first segment of every repository path: of URLs, of the directory on disk, of artifact paths,
+	-- deploys, downloads, grants and token scopes. Renaming would have to rewrite all of them, so it is immutable.
+	CREATE TABLE repositories (
+		id             INTEGER PRIMARY KEY,
+		name           TEXT    NOT NULL UNIQUE,
+		description    TEXT,
+		kind           TEXT    NOT NULL DEFAULT 'hosted' CHECK (kind IN ('hosted', 'proxy')),
+		version_policy TEXT    NOT NULL DEFAULT 'mixed' CHECK (version_policy IN ('release', 'snapshot', 'mixed')),
+		-- Not used yet: whether deploying to an unregistered artifact registers it, and its visibility then
+		auto_register  INTEGER NOT NULL DEFAULT 0,
+		default_public INTEGER NOT NULL DEFAULT 0,
+		-- Not used yet: the repository a proxy mirrors and how many seconds it keeps its metadata
+		upstream_url     TEXT,
+		metadata_max_age INTEGER,
+		created_at     INTEGER NOT NULL
+	);
+	INSERT INTO repositories (name, created_at) VALUES ('releases', unixepoch());
+
+	-- Recreated since the generated path can't be changed in place
+	CREATE TABLE artifacts_new (
+		id                      INTEGER PRIMARY KEY,
+		repository              TEXT    NOT NULL REFERENCES repositories(name),
+		group_id                TEXT    NOT NULL,
+		artifact_id             TEXT    NOT NULL,
+		-- Directory of the artifact, e.g. releases/com/example/demo
+		path                    TEXT    NOT NULL GENERATED ALWAYS AS (repository || '/' || replace(group_id, '.', '/') || '/' || artifact_id) STORED UNIQUE,
+		is_public               INTEGER NOT NULL DEFAULT 0,
+		allow_release_overwrite INTEGER NOT NULL DEFAULT 0,
+		description             TEXT,
+		created_at              INTEGER NOT NULL
+	);
+	INSERT INTO artifacts_new (id, repository, group_id, artifact_id, is_public, allow_release_overwrite, description, created_at)
+		SELECT id, 'releases', group_id, artifact_id, is_public, allow_release_overwrite, description, created_at FROM artifacts;
+	DROP TABLE artifacts;
+	ALTER TABLE artifacts_new RENAME TO artifacts;
+	CREATE INDEX artifacts_coordinates ON artifacts(group_id, artifact_id);
+
+	UPDATE deploys SET artifact_path = 'releases/' || artifact_path;
+	UPDATE downloads SET artifact_path = 'releases/' || artifact_path;
+	UPDATE grants SET pattern = 'releases/' || pattern WHERE pattern != '**';
+	UPDATE token_scopes SET pattern = 'releases/' || pattern WHERE pattern != '**';
+	`,
+	`
+	ALTER TABLE settings ADD COLUMN osv_enabled INTEGER NOT NULL DEFAULT 0;
+	ALTER TABLE settings ADD COLUMN osv_url TEXT;
+	`,
 }
 
 // Open opens the SQLite database at path and migrates it to the latest schema.
