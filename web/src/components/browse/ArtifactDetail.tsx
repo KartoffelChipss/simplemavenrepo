@@ -1,5 +1,5 @@
 import { useMe } from '@/api/auth.ts';
-import { browseQuery, useBrowse, usePom, useVulnerabilities } from '@/api/browse.ts';
+import { browseQuery, useBrowse, useDeleteVersion, usePom, useVulnerabilities } from '@/api/browse.ts';
 import { isApiError } from '@/api/client.ts';
 import { useSettings } from '@/api/settings.ts';
 import type { Artifact, BrowseEntry, Pom, PomDependency, VulnerabilityReport } from '@/api/types.ts';
@@ -16,16 +16,28 @@ import {
 } from '@/components/browse/Vulnerabilities.tsx';
 import { dependencyKey, indexReport } from '@/components/browse/vulnerabilityReport.ts';
 import { JavadocViewer } from '@/components/javadoc/JavadocViewer.tsx';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { toast } from '@/components/ui/toast';
 import { formatDate } from '@/lib/format.ts';
 import { cn } from '@/lib/utils';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
-import { Globe, Lock, PackageOpen, Settings } from 'lucide-react';
+import { Globe, Lock, PackageOpen, Settings, Trash2 } from 'lucide-react';
 import { Fragment, useState, type ReactNode } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router';
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '../ui/empty';
@@ -173,18 +185,75 @@ function Details({
     );
 }
 
+function DeleteVersionButton({
+    artifact,
+    version,
+    onDeleted,
+}: {
+    artifact: Artifact;
+    version: string;
+    onDeleted: () => void;
+}) {
+    const remove = useDeleteVersion();
+    const coordinates = `${artifact.groupId}:${artifact.artifactId}:${version}`;
+
+    function deleteVersion() {
+        remove.mutate(`${artifact.path}/${version}`, {
+            onSuccess: () => {
+                onDeleted();
+                toast.add({ title: 'Version deleted', description: coordinates });
+            },
+            onError: (err) => toast.add({ title: 'Could not delete version', description: err.message }),
+        });
+    }
+
+    return (
+        <AlertDialog>
+            <AlertDialogTrigger render={<Button variant="ghost" size="icon-sm" aria-label={`Delete ${version}`} />}>
+                <Trash2 />
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>Delete version {version}?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        All files of <span className="font-mono break-all">{coordinates}</span> will be deleted and
+                        builds depending on it will fail. This can't be undone.
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction variant="destructive" disabled={remove.isPending} onClick={deleteVersion}>
+                        Delete
+                    </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+    );
+}
+
 function VersionsTable({
     artifact,
     versions,
     current,
     latest,
+    selected,
+    canWrite,
 }: {
     artifact: Artifact;
     versions: BrowseEntry[];
     current?: string;
     latest?: string;
+    selected?: string;
+    canWrite: boolean;
 }) {
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
+
+    const leaveVersion = (version: string) => {
+        if (version === selected) {
+            void navigate({ pathname: browseUrl(artifact.path), search: searchParams.toString() }, { replace: true });
+        }
+    };
 
     if (versions.length === 0) {
         return <p className="text-sm text-muted-foreground">No version has been published yet.</p>;
@@ -196,6 +265,11 @@ function VersionsTable({
                     <TableRow>
                         <TableHead>Version</TableHead>
                         <TableHead>Published</TableHead>
+                        {canWrite && (
+                            <TableHead className="w-0">
+                                <span className="sr-only">Actions</span>
+                            </TableHead>
+                        )}
                     </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -223,6 +297,15 @@ function VersionsTable({
                                 <TableCell className="text-muted-foreground">
                                     {v.modifiedAt ? formatDate(v.modifiedAt) : ''}
                                 </TableCell>
+                                {canWrite && (
+                                    <TableCell onClick={(e) => e.stopPropagation()}>
+                                        <DeleteVersionButton
+                                            artifact={artifact}
+                                            version={v.name}
+                                            onDeleted={() => leaveVersion(v.name)}
+                                        />
+                                    </TableCell>
+                                )}
                             </TableRow>
                         );
                     })}
@@ -501,7 +584,14 @@ export function ArtifactDetail({ artifact, version: selected }: { artifact: Arti
                 </TabsContent>
 
                 <TabsContent value="versions">
-                    <VersionsTable artifact={artifact} versions={versions} current={version} latest={latest} />
+                    <VersionsTable
+                        artifact={artifact}
+                        versions={versions}
+                        current={version}
+                        latest={latest}
+                        selected={selected}
+                        canWrite={root?.canWrite ?? false}
+                    />
                 </TabsContent>
 
                 <TabsContent value="dependencies">

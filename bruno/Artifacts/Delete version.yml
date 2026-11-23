@@ -1,0 +1,18 @@
+info:
+  name: Delete version
+  type: http
+  seq: 9
+
+http:
+  method: DELETE
+  url: "{{baseUrl}}/api/versions/{{repository}}/org/example/{{artifactId}}/1.0.0"
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+docs: Deletes a version of an artifact with all its files and regenerates the artifact's maven-metadata.xml. The path is the artifact's path followed by the version. Requires write access to the version, admin access is not needed.

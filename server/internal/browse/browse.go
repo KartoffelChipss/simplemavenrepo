@@ -35,6 +35,8 @@ type Listing struct {
 	Artifact      *repository.Artifact `json:"artifact,omitempty"`
 	LatestVersion string               `json:"latestVersion,omitempty"`
 	Entries       []Entry              `json:"entries"`
+	// CanWrite reports whether the caller may change the artifact, e.g. delete its versions. Set by the API handler.
+	CanWrite bool `json:"canWrite"`
 }
 
 func List(fsys fs.FS, artifacts []repository.Artifact, canRead func(repository.Artifact) bool, p string) (Listing, error) {

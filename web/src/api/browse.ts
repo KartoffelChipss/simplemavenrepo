@@ -1,7 +1,14 @@
 import { request } from '@/api/client.ts';
-import { browseKeys } from '@/api/keys.ts';
+import { artifactKeys, browseKeys, javadocKeys, statsKeys } from '@/api/keys.ts';
 import type { BrowseArtifact, BrowseListing, Pom, VulnerabilityReport } from '@/api/types.ts';
-import { keepPreviousData, queryOptions, skipToken, useQuery } from '@tanstack/react-query';
+import {
+    keepPreviousData,
+    queryOptions,
+    skipToken,
+    useMutation,
+    useQuery,
+    useQueryClient,
+} from '@tanstack/react-query';
 
 const encodePath = (path: string) => path.split('/').filter(Boolean).map(encodeURIComponent).join('/');
 
@@ -57,3 +64,21 @@ export type BadgePeriod = 'week' | 'month' | 'year' | 'all';
 
 export const downloadsBadgeUrl = (groupId: string, artifactId: string, period: BadgePeriod) =>
     `${badgeUrl(groupId, artifactId)}/downloads${period === 'all' ? '' : `?period=${period}`}`;
+
+export const deleteVersion = (versionPath: string) => request<void>('DELETE', `/versions/${encodePath(versionPath)}`);
+
+export function useDeleteVersion() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: deleteVersion,
+        onSuccess: (_, versionPath) => {
+            queryClient.removeQueries({ queryKey: browseKeys.path(versionPath) });
+            queryClient.removeQueries({ queryKey: browseKeys.pom(versionPath) });
+            queryClient.removeQueries({ queryKey: browseKeys.vulnerabilities(versionPath) });
+            void queryClient.invalidateQueries({ queryKey: browseKeys.all });
+            void queryClient.invalidateQueries({ queryKey: javadocKeys.all });
+            void queryClient.invalidateQueries({ queryKey: artifactKeys.all });
+            void queryClient.invalidateQueries({ queryKey: statsKeys.all });
+        },
+    });
+}

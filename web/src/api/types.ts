@@ -274,6 +274,7 @@ export interface BrowseListing {
     /** Only set for the root directory of an artifact. */
     latestVersion?: string;
     entries: BrowseEntry[];
+    canWrite: boolean;
 }
 
 export interface Coordinates {

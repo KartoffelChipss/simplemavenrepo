@@ -224,3 +224,47 @@ func TestReasonPhrase(t *testing.T) {
 		t.Errorf("reasonPhrase length = %d, want %d", len(got), maxReasonLength)
 	}
 }
+
+func TestDeleteVersion(t *testing.T) {
+	s := newTestServer(t)
+	for _, v := range []string{"1.0", "2.0"} {
+		if status, got := s.do(t, fiber.MethodPut, "/releases/com/example/demo/"+v+"/demo-"+v+".jar", "release"); status != fiber.StatusCreated {
+			t.Fatalf("upload %s = %d %q", v, status, got)
+		}
+	}
+	root, err := os.OpenRoot(filepath.Join(s.dir, "releases"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer root.Close()
+	metadata := func() string {
+		data, _ := os.ReadFile(filepath.Join(s.dir, "releases/com/example/demo/maven-metadata.xml"))
+		return string(data)
+	}
+
+	if err := DeleteVersion(root, "releases", "com/example/demo", "com.example", "demo", "2.0"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := root.Stat("com/example/demo/2.0"); !os.IsNotExist(err) {
+		t.Errorf("2.0 still exists: %v", err)
+	}
+	if m := metadata(); strings.Contains(m, "2.0") || !strings.Contains(m, "<release>1.0</release>") {
+		t.Errorf("metadata must only list 1.0: %s", m)
+	}
+	if status, _ := s.do(t, fiber.MethodGet, "/releases/com/example/demo/2.0/demo-2.0.jar", ""); status != fiber.StatusNotFound {
+		t.Errorf("GET deleted version = %d", status)
+	}
+
+	if err := DeleteVersion(root, "releases", "com/example/demo", "com.example", "demo", "2.0"); !os.IsNotExist(err) {
+		t.Errorf("deleting a missing version = %v, want not exist", err)
+	}
+
+	// Without versions the metadata goes too, with its checksums
+	if err := DeleteVersion(root, "releases", "com/example/demo", "com.example", "demo", "1.0"); err != nil {
+		t.Fatal(err)
+	}
+	entries, err := os.ReadDir(filepath.Join(s.dir, "releases/com/example/demo"))
+	if err != nil || len(entries) != 0 {
+		t.Errorf("artifact directory must be empty: %v, %v", entries, err)
+	}
+}

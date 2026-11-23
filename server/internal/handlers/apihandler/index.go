@@ -62,6 +62,8 @@ func RegisterApiRoutes(app *fiber.App, repos repository.Repositories, root *os.R
 
 	authenticate := auth.Authenticate(repos)
 
+	api.Delete("/versions/*", auth.AuthenticateScoped(repos), h.deleteVersion)
+
 	me := api.Group("/me", authenticate)
 	me.Get("", h.getMe)
 	me.Put("/password", h.changeMyPassword)

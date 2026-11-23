@@ -2,6 +2,8 @@ package ressourcehandler
 
 import (
 	"bytes"
+	"errors"
+	"io/fs"
 	"os"
 	"path"
 	"simplemavenrepo/internal/maven"
@@ -45,6 +47,35 @@ func updateMetadata(root *os.Root, repo, relPath string) error {
 		return err
 	}
 	return writeMetadata(root, artifactDir, maven.NewArtifactMetadata(groupID, artifactID, versions, now))
+}
+
+func DeleteVersion(root *os.Root, repo, artifactDir, groupID, artifactID, version string) error {
+	lock, _ := metadataLocks.LoadOrStore(path.Join(repo, artifactDir), &sync.Mutex{})
+	lock.(*sync.Mutex).Lock()
+	defer lock.(*sync.Mutex).Unlock()
+
+	versionDir := path.Join(artifactDir, version)
+	if _, err := root.Stat(versionDir); err != nil {
+		return err
+	}
+	if err := root.RemoveAll(versionDir); err != nil {
+		return err
+	}
+
+	versions, err := listVersions(root, artifactDir)
+	if err != nil {
+		return err
+	}
+	if len(versions) == 0 {
+		metadataPath := path.Join(artifactDir, maven.MetadataFileName)
+		for _, suffix := range append([]string{""}, ignoredSuffixes...) {
+			if err := root.Remove(metadataPath + suffix); err != nil && !errors.Is(err, fs.ErrNotExist) {
+				return err
+			}
+		}
+		return nil
+	}
+	return writeMetadata(root, artifactDir, maven.NewArtifactMetadata(groupID, artifactID, versions, time.Now()))
 }
 
 func writeMetadata(root *os.Root, dir string, m maven.Metadata) error {
