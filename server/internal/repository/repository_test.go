@@ -355,13 +355,24 @@ func TestSettings(t *testing.T) {
 	}
 
 	name, description := "Acme", "# Welcome"
-	if s, err = r.Settings.Update(ctx, &name, &description); err != nil || *s.Name != name || *s.Description != description {
+	if s, err = r.Settings.Update(ctx, SettingsUpdate{Name: &name, Description: &description}); err != nil || *s.Name != name || *s.Description != description {
 		t.Fatalf("update: got %+v, %v", s, err)
 	}
 
 	empty := ""
-	if s, err = r.Settings.Update(ctx, nil, &empty); err != nil || s.Name == nil || *s.Name != name || s.Description != nil {
+	if s, err = r.Settings.Update(ctx, SettingsUpdate{Description: &empty}); err != nil || s.Name == nil || *s.Name != name || s.Description != nil {
 		t.Fatalf("clear description: got %+v, %v", s, err)
+	}
+
+	if s.OSVEnabled || s.OSVURL != nil {
+		t.Fatalf("OSV must be off by default: %+v", s)
+	}
+	enabled, osvURL := true, "https://osv.example.com"
+	if s, err = r.Settings.Update(ctx, SettingsUpdate{OSVEnabled: &enabled, OSVURL: &osvURL}); err != nil || !s.OSVEnabled || s.OSVURL == nil || *s.OSVURL != osvURL || *s.Name != name {
+		t.Fatalf("enable OSV: got %+v, %v", s, err)
+	}
+	if s, err = r.Settings.Update(ctx, SettingsUpdate{OSVURL: &empty}); err != nil || !s.OSVEnabled || s.OSVURL != nil {
+		t.Fatalf("clear OSV URL: got %+v, %v", s, err)
 	}
 }
 

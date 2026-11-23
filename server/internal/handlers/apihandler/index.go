@@ -6,6 +6,7 @@ import (
 	"os"
 	"simplemavenrepo/internal/auth"
 	"simplemavenrepo/internal/javadoc"
+	"simplemavenrepo/internal/osv"
 	"simplemavenrepo/internal/repository"
 
 	"github.com/gofiber/fiber/v3"
@@ -16,10 +17,11 @@ type handler struct {
 	root   *os.Root
 	repoFS fs.FS
 	signer *javadoc.Signer
+	osv    *osv.Client
 }
 
 func RegisterApiRoutes(app *fiber.App, repos repository.Repositories, root *os.Root, signer *javadoc.Signer) {
-	h := &handler{repos: repos, root: root, repoFS: root.FS(), signer: signer}
+	h := &handler{repos: repos, root: root, repoFS: root.FS(), signer: signer, osv: osv.NewClient()}
 	api := app.Group("/api")
 
 	api.Use(func(c fiber.Ctx) error {
@@ -50,6 +52,7 @@ func RegisterApiRoutes(app *fiber.App, repos repository.Repositories, root *os.R
 	api.Get("/browse", h.listBrowsableArtifacts)
 	api.Get("/browse/*", h.browseRepository)
 	api.Get("/pom/*", h.getPom)
+	api.Get("/vulnerabilities/*", h.getVulnerabilities)
 	api.Get("/javadoc", h.listJavadoc)
 	api.Get("/javadoc/*", h.getJavadoc)
 	api.Get("/badge/:groupId/:artifactId", h.getBadge)

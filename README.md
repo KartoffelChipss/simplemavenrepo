@@ -24,6 +24,7 @@ No complex setup, no plugins, no external database. Start the container, log in,
 - **Users and teams** to organize who has access to what.
 - **Release and snapshot** versions, with optional protection against overwriting releases.
 - **Download statistics** per artifact and version, with charts over time for admins.
+- **Vulnerability checks** for dependencies (opt in). Direct dependencies of every version are checked against [OSV](https://osv.dev) or a mirror of its API, artifacts hosted on the server are never sent.
 - **README badges** showing the latest version of an artifact or its downloads per week, month, year or in total.
 
 ## Screenshots

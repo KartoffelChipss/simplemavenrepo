@@ -11,6 +11,8 @@ export interface Settings {
     name: string | null;
     /** Markdown shown on the home page. */
     description: string | null;
+    osvEnabled: boolean;
+    osvUrl: string | null;
 }
 
 export interface User {
@@ -243,6 +245,8 @@ export interface UpdateArtifactRequest {
 export interface UpdateSettingsRequest {
     name?: string;
     description?: string;
+    osvEnabled?: boolean;
+    osvUrl?: string;
 }
 
 export type BrowseEntryType = 'directory' | 'file';
@@ -318,6 +322,40 @@ export interface Pom extends Coordinates {
     dependencies: PomDependency[];
     /** Parents and imported BOMs that aren't on this server. */
     unresolved: string[];
+}
+
+export type VulnerabilitySeverity = 'critical' | 'high' | 'medium' | 'low' | 'unknown';
+
+export interface Vulnerability {
+    id: string;
+    summary?: string;
+    aliases: string[];
+    severity: VulnerabilitySeverity;
+    cvss?: string;
+    published?: string;
+    fixed: string[];
+    url: string;
+}
+
+export interface CheckedDependency {
+    groupId: string;
+    artifactId: string;
+    version: string;
+    vulnerabilities: Vulnerability[];
+}
+
+export interface SkippedDependency {
+    groupId: string;
+    artifactId: string;
+    version?: string;
+    /** hosted: the artifact is on this server. unresolved: the version is missing, a range or a placeholder. */
+    reason: 'hosted' | 'unresolved';
+}
+
+export interface VulnerabilityReport {
+    dependencies: CheckedDependency[];
+    skipped: SkippedDependency[];
+    checkedAt: string;
 }
 
 export interface JavadocPackage {

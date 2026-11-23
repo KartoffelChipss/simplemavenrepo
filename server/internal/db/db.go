@@ -169,6 +169,10 @@ var migrations = []string{
 	UPDATE grants SET pattern = 'releases/' || pattern WHERE pattern != '**';
 	UPDATE token_scopes SET pattern = 'releases/' || pattern WHERE pattern != '**';
 	`,
+	`
+	ALTER TABLE settings ADD COLUMN osv_enabled INTEGER NOT NULL DEFAULT 0;
+	ALTER TABLE settings ADD COLUMN osv_url TEXT;
+	`,
 }
 
 // Open opens the SQLite database at path and migrates it to the latest schema.

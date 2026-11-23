@@ -1,12 +1,20 @@
 import { useMe } from '@/api/auth.ts';
-import { browseQuery, useBrowse, usePom } from '@/api/browse.ts';
+import { browseQuery, useBrowse, usePom, useVulnerabilities } from '@/api/browse.ts';
 import { isApiError } from '@/api/client.ts';
-import type { Artifact, BrowseEntry, Pom, PomDependency } from '@/api/types.ts';
+import { useSettings } from '@/api/settings.ts';
+import type { Artifact, BrowseEntry, Pom, PomDependency, VulnerabilityReport } from '@/api/types.ts';
 import { RepositoryBadge } from '@/components/artifacts/RepositoryBadge.tsx';
 import { artifactSettingsUrl, useBackState } from '@/components/artifacts/urls.ts';
 import { EntryTable } from '@/components/browse/EntryTable.tsx';
 import { browseUrl, isJavadocJar } from '@/components/browse/paths.ts';
 import { UsageSnippets } from '@/components/browse/UsageSnippets.tsx';
+import {
+    VulnerabilityCell,
+    VulnerabilityCountBadge,
+    VulnerabilityList,
+    VulnerabilitySummary,
+} from '@/components/browse/Vulnerabilities.tsx';
+import { dependencyKey, indexReport } from '@/components/browse/vulnerabilityReport.ts';
 import { JavadocViewer } from '@/components/javadoc/JavadocViewer.tsx';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -18,7 +26,7 @@ import { formatDate } from '@/lib/format.ts';
 import { cn } from '@/lib/utils';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { Globe, Lock, PackageOpen, Settings } from 'lucide-react';
-import type { ReactNode } from 'react';
+import { Fragment, useState, type ReactNode } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router';
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '../ui/empty';
 
@@ -224,7 +232,14 @@ function VersionsTable({
     );
 }
 
-function DependenciesTable({ dependencies }: { dependencies: PomDependency[] }) {
+interface VulnerabilityCheck {
+    report?: VulnerabilityReport;
+    pending: boolean;
+    error: Error | null;
+}
+
+function DependenciesTable({ dependencies, check }: { dependencies: PomDependency[]; check?: VulnerabilityCheck }) {
+    const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set());
     if (dependencies.length === 0) {
         return (
             <Empty>
@@ -243,54 +258,94 @@ function DependenciesTable({ dependencies }: { dependencies: PomDependency[] }) 
         return i < 0 ? SCOPE_ORDER.length : i;
     };
     const sorted = dependencies.toSorted((a, b) => rank(a.scope) - rank(b.scope));
+    const index = indexReport(check?.report);
+    const toggle = (key: string) =>
+        setExpanded((prev) => {
+            const next = new Set(prev);
+            if (!next.delete(key)) next.add(key);
+            return next;
+        });
 
     return (
-        <div className="rounded-lg border">
-            <Table>
-                <TableHeader>
-                    <TableRow>
-                        <TableHead>Dependency</TableHead>
-                        <TableHead>Version</TableHead>
-                        <TableHead>Scope</TableHead>
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                    {sorted.map((d, i) => {
-                        const coordinates = (
-                            <>
-                                <span className="text-muted-foreground">{d.groupId}:</span>
-                                {d.artifactId}
-                                {d.classifier && <span className="text-muted-foreground">:{d.classifier}</span>}
-                            </>
-                        );
-                        return (
-                            <TableRow key={i}>
-                                <TableCell className="font-mono whitespace-normal">
-                                    {d.path ? (
-                                        <Link to={browseUrl(d.path)} className="hover:underline">
-                                            {coordinates}
-                                        </Link>
-                                    ) : (
-                                        coordinates
+        <div className="flex flex-col gap-3">
+            {check && <VulnerabilitySummary report={check.report} pending={check.pending} error={check.error} />}
+            <div className="rounded-lg border">
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>Dependency</TableHead>
+                            <TableHead>Version</TableHead>
+                            <TableHead>Scope</TableHead>
+                            {check && <TableHead>Vulnerabilities</TableHead>}
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {sorted.map((d, i) => {
+                            const key = dependencyKey(d);
+                            const vulnerabilities = index.vulnerabilities.get(key) ?? [];
+                            const isExpanded = expanded.has(key) && vulnerabilities.length > 0;
+                            const coordinates = (
+                                <>
+                                    <span className="text-muted-foreground">{d.groupId}:</span>
+                                    {d.artifactId}
+                                    {d.classifier && <span className="text-muted-foreground">:{d.classifier}</span>}
+                                </>
+                            );
+                            return (
+                                <Fragment key={i}>
+                                    <TableRow className={cn(isExpanded && 'border-b-0')}>
+                                        <TableCell className="font-mono whitespace-normal">
+                                            {d.path ? (
+                                                <Link to={browseUrl(d.path)} className="hover:underline">
+                                                    {coordinates}
+                                                </Link>
+                                            ) : (
+                                                coordinates
+                                            )}
+                                            {d.type && (
+                                                <span className="ml-2 font-sans text-xs text-muted-foreground">
+                                                    {d.type}
+                                                </span>
+                                            )}
+                                        </TableCell>
+                                        <TableCell className="font-mono">
+                                            {d.version ?? (
+                                                <span className="font-sans text-muted-foreground">Managed</span>
+                                            )}
+                                        </TableCell>
+                                        <TableCell>
+                                            <span className="flex gap-1">
+                                                <Badge variant={d.scope === 'test' ? 'outline' : 'secondary'}>
+                                                    {d.scope}
+                                                </Badge>
+                                                {d.optional && <Badge variant="outline">optional</Badge>}
+                                            </span>
+                                        </TableCell>
+                                        {check && (
+                                            <TableCell>
+                                                <VulnerabilityCell
+                                                    dependency={d}
+                                                    index={index}
+                                                    pending={check.pending && !check.error}
+                                                    expanded={isExpanded}
+                                                    onToggle={() => toggle(key)}
+                                                />
+                                            </TableCell>
+                                        )}
+                                    </TableRow>
+                                    {isExpanded && (
+                                        <TableRow className="hover:bg-transparent">
+                                            <TableCell colSpan={4} className="pt-2 pb-3 pl-6">
+                                                <VulnerabilityList vulnerabilities={vulnerabilities} />
+                                            </TableCell>
+                                        </TableRow>
                                     )}
-                                    {d.type && (
-                                        <span className="ml-2 font-sans text-xs text-muted-foreground">{d.type}</span>
-                                    )}
-                                </TableCell>
-                                <TableCell className="font-mono">
-                                    {d.version ?? <span className="font-sans text-muted-foreground">Managed</span>}
-                                </TableCell>
-                                <TableCell>
-                                    <span className="flex gap-1">
-                                        <Badge variant={d.scope === 'test' ? 'outline' : 'secondary'}>{d.scope}</Badge>
-                                        {d.optional && <Badge variant="outline">optional</Badge>}
-                                    </span>
-                                </TableCell>
-                            </TableRow>
-                        );
-                    })}
-                </TableBody>
-            </Table>
+                                </Fragment>
+                            );
+                        })}
+                    </TableBody>
+                </Table>
+            </div>
         </div>
     );
 }
@@ -315,6 +370,12 @@ export function ArtifactDetail({ artifact, version: selected }: { artifact: Arti
         placeholderData: keepPreviousData,
     });
     const { data: pom, error: pomError, isPending: pomPending } = usePom(versionPath);
+    const { data: settings } = useSettings();
+    const checkEnabled = settings?.osvEnabled === true && pom !== undefined && pom.dependencies.length > 0;
+    const vulnerabilities = useVulnerabilities(versionPath, checkEnabled);
+    const check: VulnerabilityCheck | undefined = checkEnabled
+        ? { report: vulnerabilities.data, pending: vulnerabilities.isPending, error: vulnerabilities.error }
+        : undefined;
 
     const description = artifact.description || pom?.description;
     const hasJavadoc = files?.entries.some(isJavadocJar) ?? false;
@@ -400,6 +461,7 @@ export function ArtifactDetail({ artifact, version: selected }: { artifact: Arti
                                 {pom.dependencies.length}
                             </span>
                         )}
+                        {checkEnabled && <VulnerabilityCountBadge report={vulnerabilities.data} />}
                     </TabsTrigger>
                     {(hasJavadoc || tab === 'javadoc') && (
                         <TabsTrigger value="javadoc" className="flex-none">
@@ -447,7 +509,7 @@ export function ArtifactDetail({ artifact, version: selected }: { artifact: Arti
                     {version && pomPending && !pomError && <Skeleton className="h-24" />}
                     {isApiError(pomError, 404) && <p className="text-muted-foreground">This version has no POM.</p>}
                     {pomError && !isApiError(pomError, 404) && <p className="text-destructive">{pomError.message}</p>}
-                    {pom && <DependenciesTable dependencies={pom.dependencies} />}
+                    {pom && <DependenciesTable key={versionPath} dependencies={pom.dependencies} check={check} />}
                 </TabsContent>
 
                 <TabsContent value="javadoc">
