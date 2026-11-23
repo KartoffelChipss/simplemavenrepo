@@ -33,7 +33,7 @@ func updateMetadata(root *os.Root, repo, relPath string) error {
 		if err != nil {
 			return err
 		}
-		if m, ok := maven.NewSnapshotMetadata(groupID, artifactID, version, files, storedExtensions, now); ok {
+		if m, ok := maven.NewSnapshotMetadata(groupID, artifactID, version, files, signedExtensions, now); ok {
 			if err := writeMetadata(root, versionDir, m); err != nil {
 				return err
 			}

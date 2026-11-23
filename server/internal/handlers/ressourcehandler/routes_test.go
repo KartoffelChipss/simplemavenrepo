@@ -104,6 +104,13 @@ func TestRepositoryRoutes(t *testing.T) {
 		{fiber.MethodPut, "/snapshots" + release, fiber.StatusBadRequest, "only accepts SNAPSHOT versions"},
 		{fiber.MethodPut, "/snapshots" + snapshot, fiber.StatusCreated, ""},
 		{fiber.MethodGet, "/snapshots" + snapshot, fiber.StatusOK, "snapshot"},
+		// Signatures are stored next to the files they sign
+		{fiber.MethodPut, "/releases" + release + ".asc", fiber.StatusCreated, ""},
+		{fiber.MethodGet, "/releases" + release + ".asc", fiber.StatusOK, "release"},
+		{fiber.MethodPut, "/releases" + release + ".asc.sha1", fiber.StatusNoContent, ""},
+		{fiber.MethodPut, "/releases" + release + ".asc", fiber.StatusConflict, "already published"},
+		{fiber.MethodPut, "/snapshots" + snapshot + ".asc", fiber.StatusCreated, ""},
+		{fiber.MethodPut, "/releases/com/example/demo/1.0/demo-1.0.txt.asc", fiber.StatusUnsupportedMediaType, ""},
 		// The same coordinates in another repository are a different artifact
 		{fiber.MethodGet, "/snapshots" + release, fiber.StatusNotFound, ""},
 		{fiber.MethodGet, "/releases/com/example/demo/2.0/demo-2.0.jar", fiber.StatusNotFound, ""},
@@ -143,6 +150,10 @@ func TestRepositoryRoutes(t *testing.T) {
 			t.Errorf("%s: %v", f, err)
 		}
 	}
+	snapshotMetadata, err := os.ReadFile(filepath.Join(s.dir, "snapshots/com/example/demo/1.0-SNAPSHOT/maven-metadata.xml"))
+	if err != nil || !strings.Contains(string(snapshotMetadata), "<extension>jar.asc</extension>") {
+		t.Errorf("the snapshot metadata must list the signature: %s, %v", snapshotMetadata, err)
+	}
 	metadata, err := os.ReadFile(filepath.Join(s.dir, "releases/com/example/demo/maven-metadata.xml"))
 	if err != nil || !strings.Contains(string(metadata), "<groupId>com.example</groupId>") {
 		t.Errorf("the metadata must not contain the repository in the groupId: %s, %v", metadata, err)
@@ -164,14 +175,16 @@ func TestAutoRegister(t *testing.T) {
 		wantStatus     int
 		wantBody       string
 	}{
-		// Checksums and metadata don't register an artifact, only the files they belong to
+		// Checksums, signatures and metadata don't register an artifact, only the files they belong to
 		{fiber.MethodPut, "/public/org/acme/lib/1.0/lib-1.0.jar.sha1", fiber.StatusForbidden, "org.acme:lib is not registered"},
+		{fiber.MethodPut, "/public/org/acme/lib/1.0/lib-1.0.jar.asc", fiber.StatusForbidden, "org.acme:lib is not registered"},
 		{fiber.MethodPut, "/public/org/acme/lib/maven-metadata.xml", fiber.StatusForbidden, "is not registered"},
 		// A rejected upload doesn't register it either
 		{fiber.MethodPut, "/private/org/acme/lib/1.0-SNAPSHOT/lib-1.0-20260101.120000-1.jar", fiber.StatusBadRequest, "only accepts release versions"},
 		{fiber.MethodPut, "/private/org/acme/lib/1.0/lib-1.0.txt", fiber.StatusUnsupportedMediaType, ""},
 		{fiber.MethodPut, "/public/org/acme/lib/1.0/lib-1.0.jar", fiber.StatusCreated, ""},
 		{fiber.MethodPut, "/public/org/acme/lib/1.0/lib-1.0.jar.sha1", fiber.StatusNoContent, ""},
+		{fiber.MethodPut, "/public/org/acme/lib/1.0/lib-1.0.jar.asc", fiber.StatusCreated, ""},
 		{fiber.MethodPut, "/public/org/acme/lib/1.0/lib-1.0.pom", fiber.StatusCreated, ""},
 		{fiber.MethodGet, "/public/org/acme/lib/1.0/lib-1.0.jar", fiber.StatusOK, "release"},
 		{fiber.MethodPut, "/private/org/acme/lib/1.0/lib-1.0.jar", fiber.StatusCreated, ""},

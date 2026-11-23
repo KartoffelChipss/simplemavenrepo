@@ -19,6 +19,7 @@ import (
 	"path"
 	"simplemavenrepo/internal/auth"
 	"simplemavenrepo/internal/repository"
+	"slices"
 	"strings"
 
 	"github.com/gofiber/fiber/v3"
@@ -27,6 +28,16 @@ import (
 var ignoredSuffixes = []string{".md5", ".sha1", ".sha256", ".sha512"}
 
 var storedExtensions = []string{".jar", ".pom", ".module", ".aar", ".klib", ".war", ".ear", ".zip", ".tar.gz"}
+
+const signatureSuffix = ".asc"
+
+var signedExtensions = func() []string {
+	exts := slices.Clone(storedExtensions)
+	for _, ext := range storedExtensions {
+		exts = append(exts, ext+signatureSuffix)
+	}
+	return exts
+}()
 
 type deployment struct {
 	artifact *repository.Artifact
@@ -110,8 +121,9 @@ func upload(c fiber.Ctx, root *os.Root, repos repository.Repositories, d *deploy
 		log.Printf("Looking up artifact for %s failed: %v", fullPath, err)
 		return fiber.ErrInternalServerError
 	}
-	// Checksums and metadata follow the files they belong to, so an unregistered artifact is only registered by a file
-	if !registered && (!repo.AutoRegister || isIgnoredUpload(relPath)) {
+	// Checksums, signatures and metadata follow the files they belong to, so an unregistered artifact is only registered
+	// by a file
+	if !registered && (!repo.AutoRegister || isIgnoredUpload(relPath) || isSignature(relPath)) {
 		// Not 404: Maven reports that as "Could not find artifact" and drops the message
 		return fiber.NewError(fiber.StatusForbidden,
 			coordinatesOf(relPath)+" is not registered in repository "+repo.Name+", an admin has to register it first")
@@ -126,8 +138,9 @@ func upload(c fiber.Ctx, root *os.Root, repos repository.Repositories, d *deploy
 	if version := path.Base(path.Dir(relPath)); !repo.VersionPolicy.Allows(version) {
 		return fiber.NewError(fiber.StatusBadRequest, policyError(repo, version))
 	}
-	if !hasStoredExtension(relPath) {
-		return fiber.NewError(fiber.StatusUnsupportedMediaType, "only "+strings.Join(storedExtensions, ", ")+" files can be uploaded")
+	if !hasStoredExtension(relPath) && !isSignature(relPath) {
+		return fiber.NewError(fiber.StatusUnsupportedMediaType,
+			"only "+strings.Join(storedExtensions, ", ")+" files and their "+signatureSuffix+" signatures can be uploaded")
 	}
 	// Registered only once the upload passed the checks, so a rejected one doesn't leave an artifact behind
 	if !registered {
@@ -267,6 +280,12 @@ func isIgnoredUpload(p string) bool {
 		}
 	}
 	return false
+}
+
+// isSignature reports whether p is the signature of a file with a stored extension.
+func isSignature(p string) bool {
+	signed, ok := strings.CutSuffix(p, signatureSuffix)
+	return ok && hasStoredExtension(signed)
 }
 
 func hasStoredExtension(p string) bool {
